@@ -1,6 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-
 # dumpgenerator.py A generator of dumps for wikis
 # Copyright (C) 2011-2014 WikiTeam developers
 # This program is free software: you can redistribute it and/or modify
@@ -16,16 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# To learn more, read the documentation:
-#     https://github.com/WikiTeam/wikiteam/wiki
-
 try:
-    from BeautifulSoup import BeautifulSoup
+    from bs4 import BeautifulSoup
 except:
-    print 'Need BeautifulSoup for current version. In the future it should use regex for scraping.'
+    print('Need BeautifulSoup for current version. In the future it should use regex for scraping.')
 
-import HTMLParser
-import urlparse
+from html.parser import HTMLParser
+import urllib.parse as urlparse
 import requests
 import os
 import socket
@@ -34,40 +28,97 @@ from datetime import datetime
 import gzip
 import time
 
+def createSession():
+    session = requests.Session()
+    try:
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
 
-def getTitles(url, ns=None):
+        # Courtesy datashaman https://stackoverflow.com/a/35504626
+        class CustomRetry(Retry):
+            def increment(self, method=None, url=None, *args, **kwargs):
+                if '_pool' in kwargs:
+                    conn = kwargs['_pool'] # type: urllib3.connectionpool.HTTPSConnectionPool
+                    if 'response' in kwargs:
+                        try:
+                            # drain conn in advance so that it won't be put back into conn.pool
+                            kwargs['response'].drain_conn()
+                        except:
+                            pass
+                    # Useless, retry happens inside urllib3
+                    # for adapters in session.adapters.values():
+                    #     adapters: HTTPAdapter
+                    #     adapters.poolmanager.clear()
+
+                    # Close existing connection so that a new connection will be used
+                    if hasattr(conn, 'pool'):
+                        pool = conn.pool  # type: queue.Queue
+                        try:
+                            # Don't directly use this, This closes connection pool by making conn.pool = None
+                            conn.close()
+                        except:
+                            pass
+                        conn.pool = pool
+                return super(CustomRetry, self).increment(method=method, url=url, *args, **kwargs)
+
+            def sleep(self, response=None):
+                backoff = self.get_backoff_time()
+                if backoff <= 0:
+                    return
+                if response is not None:
+                    msg = 'req retry (%s)' % response.status
+                else:
+                    msg = None
+                time.sleep(backoff) 
+
+        __retries__ = CustomRetry(
+            total=5, backoff_factor=1.5,
+            status_forcelist=[500, 502, 503, 504, 429],
+            allowed_methods=['DELETE', 'PUT', 'GET', 'OPTIONS', 'TRACE', 'HEAD', 'POST']
+        )
+        session.mount("https://", HTTPAdapter(max_retries=__retries__))
+        session.mount("http://", HTTPAdapter(max_retries=__retries__))
+    except:
+        pass
+    return session
+
+def getTitles(url, ns=None, session=None):
     """Get titles given a doku.php URL and an (optional) namespace"""
+    
+    # # force use of old method for now
+    # return getTitlesOld(url, ns=None, session=session)
+    
     titles = []
     ajax = urlparse.urljoin(url, 'lib/exe/ajax.php')
     params = {'call': 'index'}
     if ns:
         params['idx'] = ns
     else:
-        print 'Finding titles'
+        print('Finding titles')
     ns = ns or ''
     depth = len(ns.split(':'))
     if ns:
-        print '%sLooking in namespace %s' % (' ' * depth, ns)
-    r = requests.post(ajax, params)
+        print('%sLooking in namespace %s' % (' ' * depth, ns))
+    r = session.post(ajax, params)
     if r.status_code != 200 or "AJAX call 'index' unknown!" in r.text:
-        return getTitlesOld(url, ns=None)
-    soup = BeautifulSoup(r.text)
+        return getTitlesOld(url, ns=None, session=session)
+    soup = BeautifulSoup(r.text, 'lxml')
     for a in soup.findAll('a', href=True):
-        if a.has_key('title'):
+        if a.has_attr('title'):
             title = a['title']
         else:
             query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
             title = (query['idx' if 'idx' in query else 'id'])[0]
         if a['class'] == 'idx_dir':
-            titles += getTitles(url, title)
+            titles += getTitles(url=url, title=title, session=session)
         else:
             titles.append(title)
     time.sleep(1.5)
-    print '%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)')
+    print('%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)'))
     return titles
 
 
-def getTitlesOld(url, ns=None, ancient=False):
+def getTitlesOld(url, ns=None, ancient=False, session=None):
     """Get titles using the doku.php?do=index"""
 
     titles = []
@@ -78,12 +129,12 @@ def getTitlesOld(url, ns=None, ancient=False):
     ns = ns or ''
     depth = len(ns.split(':'))
 
-    r = requests.get(url, params=params)
-    soup = BeautifulSoup(r.text).findAll('ul', {'class': 'idx'})[0]
+    r = session.get(url, params=params)
+    soup = BeautifulSoup(r.text, 'lxml').findAll('ul', {'class': 'idx'})[0]
     attr = 'text' if ancient else 'title'
 
     if ns:
-        print '%sSearching in namespace %s' % (' ' * depth, ns)
+        print('%sSearching in namespace %s' % (' ' * depth, ns))
 
         def match(href):
             if not href:
@@ -97,58 +148,60 @@ def getTitlesOld(url, ns=None, ancient=False):
             'a', {
                 'href': lambda x: x and not match(x)})
     else:
-        print 'Finding titles (?do=index)'
+        print('Finding titles (?do=index)')
         result = soup.findAll('a')
 
     for a in result:
         query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
-        if a['class'] == 'idx_dir':
-            titles += getTitlesOld(url, query['idx'][0])
+        if a.has_attr('class') and a['class'] == 'idx_dir':
+            titles += getTitlesOld(url, query['idx'][0], session=session)
         else:
             titles.append(query['id'][0])
 
-    print '%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)')
+    print('%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)'))
 
     return titles
 
 
-def getSourceExport(url, title, rev=''):
+def getSourceExport(url, title, rev='', session=None):
     """Export the raw source of a page (at a given revision)"""
 
-    r = requests.get(url, params={'id': title, 'rev': rev, 'do': 'export_raw'})
+    r = session.get(url, params={'id': title, 'rev': rev, 'do': 'export_raw'})
     return r.text
 
 
-def getSourceEdit(url, title, rev=''):
+def getSourceEdit(url, title, rev='', session=None):
     """Export the raw source of a page by scraping the edit box content. Yuck."""
 
-    r = requests.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
-    soup = BeautifulSoup(r.text)
-    return ''.join(soup.find('textarea', {'name': 'wikitext'}).contents).strip()
+    r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
+    soup = BeautifulSoup(r.text, 'lxml')
+    return ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
 
 
 def domain2prefix(url):
-    """ Convert domain name to a valid prefix filename. """
+    """Convert domain name to a valid prefix filename."""
 
+    # At this point, both api and index are supposed to be defined
     domain = url
 
     domain = domain.lower()
-    domain = re.sub(r'(https?://|www\.|/doku\.php)', '', domain)
-    domain = re.sub(r'/', '_', domain)
-    domain = re.sub(r'\.', '', domain)
-    domain = re.sub(r'[^A-Za-z0-9]', '_', domain)
+    domain = domain.strip('/')
+    domain = re.sub(r"(https?://|www\.|/index\.php.*|/api\.php.*)", "", domain)
+    domain = re.sub(r"/", "_", domain)
+    # domain = re.sub(r"\.", "", domain)
+    # domain = re.sub(r"[^A-Za-z0-9]", "_", domain)
 
     return domain
 
 
-def getRevisions(url, title, use_hidden_rev=False, select_revs=False):
+def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session=None):
     """ Get the revisions of a page. This is nontrivial because different versions of DokuWiki return completely different revision HTML."""
 
     revs = []
-    h = HTMLParser.HTMLParser()
+    h = HTMLParser
     if select_revs:
-        r = requests.get(url, params={'id': title, 'do': 'diff'})
-        soup = BeautifulSoup(r.text)
+        r = session.get(url, params={'id': title, 'do': 'diff'})
+        soup = BeautifulSoup(r.text, 'lxml')
         select = soup.find(
             'select', {
                 'class': 'quickselect', 'name': 'rev2[1]'})
@@ -168,14 +221,14 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False):
     cont = True
 
     while cont:
-        r = requests.get(
+        r = session.get(
             url,
             params={
                 'id': title,
                 'do': 'revisions',
                 'first': continue_index})
 
-        soup = BeautifulSoup(r.text)
+        soup = BeautifulSoup(r.text, 'lxml')
         lis = soup.findAll(
             'div', {
                 'class': 'level1'})[0].findNext('ul').findAll('li')
@@ -201,7 +254,7 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False):
                 else:
                     rev['sum'] = h.unescape(' '.join(sum_text)).strip()
             elif not select_revs:
-                print repr(li.text)
+                print(repr(li.text))
                 wikilink1 = li.find('a', {'class': 'wikilink1'})
                 text_node = wikilink1 and wikilink1.next and wikilink1.next.next or ''
                 if text_node.strip:
@@ -235,7 +288,7 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False):
         time.sleep(1.5)
 
     if revs and use_hidden_rev and not select_revs:
-        soup2 = BeautifulSoup(requests.get(url, params={'id': title}).text)
+        soup2 = BeautifulSoup(session.get(url, params={'id': title}).text)
         revs[0]['id'] = soup2.find(
             'input', {
                 'type': 'hidden', 'name': 'rev', 'value': True})['value']
@@ -243,16 +296,16 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False):
     return revs
 
 
-def getFiles(url, ns=''):
+def getFiles(url, ns='', session=None):
     """ Return a list of media filenames of a wiki """
     files = set()
     ajax = urlparse.urljoin(url, 'lib/exe/ajax.php')
     medialist = BeautifulSoup(
-        requests.post(
+        session.post(
             ajax, {
                 'call': 'medialist', 'ns': ns, 'do': 'media'}).text)
     medians = BeautifulSoup(
-        requests.post(
+        session.post(
             ajax, {
                 'call': 'medians', 'ns': ns, 'do': 'media'}).text)
     imagelinks = medialist.findAll(
@@ -268,36 +321,37 @@ def getFiles(url, ns=''):
     namespacelinks = medians.findAll('a', {'class': 'idx_dir', 'href': True})
     for a in namespacelinks:
         query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
-        files += getFiles(url, query['ns'][0])
-    print 'Found %d files in namespace %s' % (len(files), ns or '(all)')
+        files += getFiles(url, query['ns'][0], session=session)
+    print('Found %d files in namespace %s' % (len(files), ns or '(all)'))
     return files
 
 
-def dumpContent(url):
+def dumpContent(url:str = '', session=None):
     os.mkdir(domain2prefix(url) + '/pages')
     os.mkdir(domain2prefix(url) + '/attic')
     os.mkdir(domain2prefix(url) + '/meta')
 
-    titles = getTitles(url)
+    titles = getTitles(url=url, session=session)
     if not len(titles):
-        print 'Empty wiki'
+        print('Empty wiki')
         return
 
-    r1 = requests.get(url, params={'id': titles[0], 'do': 'export_raw'})
-    r2 = requests.get(url, params={'id': titles[0]})
-    r3 = requests.get(url, params={'id': titles[0], 'do': 'diff'})
+    r1 = session.get(url, params={'id': titles[0], 'do': 'export_raw'})
+    r2 = session.get(url, params={'id': titles[0]})
+    r3 = session.get(url, params={'id': titles[0], 'do': 'diff'})
 
     getSource = getSourceExport
     if 'html' in r1.headers['content-type']:
+        print('Export not available, using edit')
         getSource = getSourceEdit
 
-    soup = BeautifulSoup(r2.text)
+    soup = BeautifulSoup(r2.text, 'lxml')
     hidden_rev = soup.findAll(
         'input', {
             'type': 'hidden', 'name': 'rev', 'value': True})
     use_hidden_rev = hidden_rev and hidden_rev[0]['value']
 
-    soup = BeautifulSoup(r3.text)
+    soup = BeautifulSoup(r3.text, 'lxml')
     select_revs = soup.findAll(
         'select', {
             'class': 'quickselect', 'name': 'rev2[0]'})
@@ -313,18 +367,18 @@ def dumpContent(url):
             if not os.path.exists(domain2prefix(url) + '/attic/' + dir):
                 os.mkdir(domain2prefix(url) + '/attic/' + dir)
         with open(domain2prefix(url) + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
-            f.write(getSource(url, title).encode("utf-8"))
-        revs = getRevisions(url, title, use_hidden_rev, select_revs)
+            f.write(getSource(url, title, session=session))
+        revs = getRevisions(url, title, use_hidden_rev, select_revs, session=session)
         for rev in revs[1:]:
             if 'id' in rev and rev['id']:
-                with gzip.open(domain2prefix(url) + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt.gz', 'w') as f:
-                    f.write(getSource(url, title, rev['id']).encode("utf-8"))
+                with open(domain2prefix(url) + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                    f.write(getSource(url, title, rev['id'],session=session))
                 time.sleep(1.5)
-                print 'Revision %s of %s' % (rev['id'], title)
+                print('Revision %s of %s' % (rev['id'], title))
         with open(domain2prefix(url) + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
             # Loop through revisions in reverse.
             for rev in revs[::-1]:
-                print rev, title
+                print(rev, title)
                 sum = 'sum' in rev and rev['sum'].strip() or ''
                 id = 0
 
@@ -358,10 +412,10 @@ def dumpContent(url):
                 row = row.replace('\n', ' ')
                 row = row.replace('\r', ' ')
 
-                f.write((row + '\n').encode("utf-8"))
+                f.write((row + '\n'))
 
 
-def dumpMedia(url):
+def dumpMedia(url: str = '', session=None):
     prefix = domain2prefix(url)
     os.mkdir(prefix + '/media')
     os.mkdir(prefix + '/media_attic')
@@ -369,7 +423,7 @@ def dumpMedia(url):
 
     fetch = urlparse.urljoin(url, 'lib/exe/fetch.php')
 
-    files = getFiles(url)
+    files = getFiles(url, session=session)
     for title in files:
         titleparts = title.split(':')
         for i in range(len(titleparts)):
@@ -377,13 +431,16 @@ def dumpMedia(url):
             if not os.path.exists(prefix + '/media/' + dir):
                 os.mkdir(prefix + '/media/' + dir)
         with open(prefix + '/media/' + title.replace(':', '/'), 'wb') as f:
-            f.write(requests.get(fetch, params={'media': title}).content)
-        print 'File %s' % title
+            f.write(session.get(fetch, params={'media': title}).content)
+        print('File %s' % title)
         time.sleep(1.5)
 
 
 def dump(url):
-    print domain2prefix(url)
+    session = createSession()
+    print(domain2prefix(url))
     os.mkdir(domain2prefix(url))
-    dumpContent(url)
-    dumpMedia(url)
+    dumpContent(url=url, session=session)
+    dumpMedia(url=url, session=session)
+
+dump(input('URL: '))
