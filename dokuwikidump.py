@@ -109,8 +109,8 @@ def getTitles(url, ns=None, session=None):
         else:
             query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
             title = (query['idx' if 'idx' in query else 'id'])[0]
-        if a['class'] == 'idx_dir':
-            titles += getTitles(url=url, title=title, session=session)
+        if 'idx_dir' in a['class']:
+            titles += getTitles(url=url, ns=title, session=session)
         else:
             titles.append(title)
     time.sleep(1.5)
@@ -153,7 +153,10 @@ def getTitlesOld(url, ns=None, ancient=False, session=None):
 
     for a in result:
         query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
-        if a.has_attr('class') and a['class'] == 'idx_dir':
+        if (
+            a.has_attr('class')
+            and ('idx_dir' in a['class'])
+        ):
             titles += getTitlesOld(url, query['idx'][0], session=session)
         else:
             titles.append(query['id'][0])
