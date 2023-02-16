@@ -113,7 +113,7 @@ def getTitles(url, ns=None, session=None):
             titles += getTitles(url=url, ns=title, session=session)
         else:
             titles.append(title)
-    time.sleep(1.5)
+    # time.sleep(1.5)
     print('%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)'))
     return titles
 
@@ -181,20 +181,29 @@ def getSourceEdit(url, title, rev='', session=None):
     return ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
 
 
-def domain2prefix(url):
-    """Convert domain name to a valid prefix filename."""
+def url2prefix(url):
+    """Convert URL to a valid prefix filename."""
 
     # At this point, both api and index are supposed to be defined
-    domain = url
 
-    domain = domain.lower()
-    domain = domain.strip('/')
-    domain = re.sub(r"(https?://|www\.|/index\.php.*|/api\.php.*)", "", domain)
-    domain = re.sub(r"/", "_", domain)
+    # use request to transform prefix into a valid filename
+    
+    r = urlparse.urlparse(url)
+    # prefix = r.netloc + r.path
+    if r.path and r.path != '/' and not r.path.endswith('/'):
+        # truncate to last slash
+        prefix = r.netloc + r.path[:r.path.rfind('/')]
+    else:
+        prefix = r.netloc + r.path
+    prefix = prefix.lower()
+    prefix = re.sub(r"(/[a-z0-9]+\.php)", "", prefix)
+    prefix = prefix.strip('/')
+    prefix = re.sub(r"/", "_", prefix)
+
     # domain = re.sub(r"\.", "", domain)
     # domain = re.sub(r"[^A-Za-z0-9]", "_", domain)
 
-    return domain
+    return prefix
 
 
 def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session=None):
@@ -244,9 +253,15 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session=No
             rev['minor'] = ('class', 'minor') in li.attrs
 
             if rev_hrefs:
-                rev['id'] = urlparse.parse_qs(
-                    urlparse.urlparse(
-                        rev_hrefs[0]['href']).query)['rev'][0]
+                obj1 = rev_hrefs[0]['href']
+                obj2 = urlparse.urlparse(obj1).query
+                obj3 = urlparse.parse_qs(obj2)
+                if 'rev' in obj3:
+                    rev['id'] = obj3['rev'][0]
+                else:
+                    rev['id'] = None
+                del(obj1, obj2, obj3)
+                
 
             sum_span = li.findAll('span', {'class': 'sum'})
             if sum_span and not select_revs:
@@ -288,7 +303,7 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session=No
         first = soup.findAll('input', {'name': 'first', 'value': True})
         continue_index = first and max(map(lambda x: x['value'], first))
         cont = soup.find('input', {'class': 'button', 'accesskey': 'n'})
-        time.sleep(1.5)
+        # time.sleep(1.5)
 
     if revs and use_hidden_rev and not select_revs:
         soup2 = BeautifulSoup(session.get(url, params={'id': title}).text)
@@ -304,13 +319,17 @@ def getFiles(url, ns='', session=None):
     files = set()
     ajax = urlparse.urljoin(url, 'lib/exe/ajax.php')
     medialist = BeautifulSoup(
-        session.post(
-            ajax, {
-                'call': 'medialist', 'ns': ns, 'do': 'media'}).text)
+        session.post(ajax, {
+            'call': 'medialist',
+            'ns': ns,
+            'do': 'media'
+        }).text, 'lxml')
     medians = BeautifulSoup(
-        session.post(
-            ajax, {
-                'call': 'medians', 'ns': ns, 'do': 'media'}).text)
+        session.post(ajax, {
+            'call': 'medians',
+            'ns': ns,
+            'do': 'media'
+        }).text, 'lxml')
     imagelinks = medialist.findAll(
         'a',
         href=lambda x: x and re.findall(
@@ -329,15 +348,41 @@ def getFiles(url, ns='', session=None):
     return files
 
 
-def dumpContent(url:str = '', session=None):
-    os.mkdir(domain2prefix(url) + '/pages')
-    os.mkdir(domain2prefix(url) + '/attic')
-    os.mkdir(domain2prefix(url) + '/meta')
+def loadTitles(titlesFilePath) -> list[str]|None:
+    """ Load titles from dump directory
+    
+    Return:
+        `list[str]`: titles
+        `None`: titles file does not exist or incomplete
+     """
+    if os.path.exists(titlesFilePath):
+        with open(titlesFilePath, 'r') as f:
+            titles = f.read().splitlines()
+        if len(titles) and titles[-1] == '--END--':
+            print('Loaded %d titles from %s' % (len(titles) - 1, titlesFile))
+            return titles[:-1]
+    
+    return None
 
-    titles = getTitles(url=url, session=session)
+
+def dumpContent(url:str = '',dumpDir:str = '', session=None):
+    if not dumpDir:
+        raise ValueError('dumpDir must be set')
+    mkdir(dumpDir + '/pages')
+    mkdir(dumpDir + '/attic')
+    mkdir(dumpDir + '/meta')
+    mkdir(dumpDir + '/dumpMeta')
+
+    titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
+    if titles is None:
+        titles = getTitles(url=url, session=session)
+        with open(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
+            f.write('\n'.join(titles))
+            f.write('\n--END--\n')
+
     if not len(titles):
         print('Empty wiki')
-        return
+        return False
 
     r1 = session.get(url, params={'id': titles[0], 'do': 'export_raw'})
     r2 = session.get(url, params={'id': titles[0]})
@@ -363,22 +408,19 @@ def dumpContent(url:str = '', session=None):
         titleparts = title.split(':')
         for i in range(len(titleparts)):
             dir = "/".join(titleparts[:i])
-            if not os.path.exists(domain2prefix(url) + '/pages/' + dir):
-                os.mkdir(domain2prefix(url) + '/pages/' + dir)
-            if not os.path.exists(domain2prefix(url) + '/meta/' + dir):
-                os.mkdir(domain2prefix(url) + '/meta/' + dir)
-            if not os.path.exists(domain2prefix(url) + '/attic/' + dir):
-                os.mkdir(domain2prefix(url) + '/attic/' + dir)
-        with open(domain2prefix(url) + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
+            mkdir(dumpDir + '/pages/' + dir)
+            mkdir(dumpDir + '/meta/' + dir)
+            mkdir(dumpDir + '/attic/' + dir)
+        with open(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
             f.write(getSource(url, title, session=session))
         revs = getRevisions(url, title, use_hidden_rev, select_revs, session=session)
         for rev in revs[1:]:
             if 'id' in rev and rev['id']:
-                with open(domain2prefix(url) + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                with open(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                     f.write(getSource(url, title, rev['id'],session=session))
-                time.sleep(1.5)
+                # time.sleep(1.5)
                 print('Revision %s of %s' % (rev['id'], title))
-        with open(domain2prefix(url) + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
+        with open(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
             # Loop through revisions in reverse.
             for rev in revs[::-1]:
                 print(rev, title)
@@ -418,11 +460,13 @@ def dumpContent(url:str = '', session=None):
                 f.write((row + '\n'))
 
 
-def dumpMedia(url: str = '', session=None):
-    prefix = domain2prefix(url)
-    os.mkdir(prefix + '/media')
-    os.mkdir(prefix + '/media_attic')
-    os.mkdir(prefix + '/media_meta')
+def dumpMedia(url: str = '', dumpDir: str = '', session=None):
+    if not dumpDir:
+        raise ValueError('dumpDir must be set')
+    prefix = dumpDir
+    mkdir(prefix + '/media')
+    mkdir(prefix + '/media_attic')
+    mkdir(prefix + '/media_meta')
 
     fetch = urlparse.urljoin(url, 'lib/exe/fetch.php')
 
@@ -431,19 +475,53 @@ def dumpMedia(url: str = '', session=None):
         titleparts = title.split(':')
         for i in range(len(titleparts)):
             dir = "/".join(titleparts[:i])
-            if not os.path.exists(prefix + '/media/' + dir):
-                os.mkdir(prefix + '/media/' + dir)
+            mkdir(prefix + '/media/' + dir)
         with open(prefix + '/media/' + title.replace(':', '/'), 'wb') as f:
             f.write(session.get(fetch, params={'media': title}).content)
         print('File %s' % title)
-        time.sleep(1.5)
+        # time.sleep(1.5)
 
 
-def dump(url):
+def standardizeUrl(url: str = ''):
+    if not url.startswith('http'):
+        url = 'http://' + url
+    return url
+
+def getDokuUrl(url: str = '', session=requests.Session()):
+    r = session.get(url)
+    dokuUrl = r.url
+    
+    return dokuUrl
+
+def buildBaseUrl(url: str = '') -> str:
+    r = urlparse.urlparse(url)
+    path = r.path
+    if path and path != '/' and not path.endswith('/'):
+        path = path[:path.rfind('/')]
+    baseUrl = r.scheme + '://' + r.netloc + path
+    if not baseUrl.endswith('/'):
+        baseUrl += '/'
+
+    return baseUrl
+
+def mkdir(dir: str = '') -> bool:
+    """ Return: True->created, False->existed """
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+        return True
+
+    return False
+
+
+def dump(urlInput: str = ''):
     session = createSession()
-    print(domain2prefix(url))
-    os.mkdir(domain2prefix(url))
-    dumpContent(url=url, session=session)
-    dumpMedia(url=url, session=session)
+    url = standardizeUrl(urlInput)
+    dokuUrl = getDokuUrl(url, session=session)
+    baseUrl = buildBaseUrl(dokuUrl)
+    dumpDir = url2prefix(dokuUrl)
+    print('Dumping to ', dumpDir, '\nBase URL: ', baseUrl, '\nDokuPHP URL: ', dokuUrl)
+    mkdir(dumpDir)
+    dumpContent(url=dokuUrl, dumpDir=dumpDir, session=session)
+    dumpMedia(url=baseUrl, dumpDir=dumpDir, session=session)
 
 dump(input('URL: '))
