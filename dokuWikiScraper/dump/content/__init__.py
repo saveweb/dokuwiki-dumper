@@ -1,12 +1,14 @@
-import datetime
+from datetime import datetime
 import socket
 import time
 
 from bs4 import BeautifulSoup
 
+from dokuWikiScraper.exceptions import DispositionHeaderMissingError
 
-from dokuWikiScraper.dump.content.revisions import getRevisions, getSourceEdit, getSourceExport
-from dokuWikiScraper.dump.content.titles import getTitles
+
+from .revisions import getRevisions, getSourceEdit, getSourceExport
+from .titles import getTitles
 from dokuWikiScraper.utils.util import loadTitles, smkdir
 
 
@@ -67,10 +69,15 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
         revs = getRevisions(url, title, use_hidden_rev, select_revs, session=session)
         for rev in revs[1:]:
             if 'id' in rev and rev['id']:
-                with open(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
-                    f.write(getSource(url, title, rev['id'],session=session))
+                try:
+                    txt = getSource(url, title, rev['id'],session=session)
+                    with open(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                        f.write(txt)
+                    print('Revision %s of %s saved.' % (rev['id'], title))
+                except DispositionHeaderMissingError:
+                    print('Revision %s of %s is empty. (probably deleted)' % (rev['id'], title))
+
                 # time.sleep(1.5)
-                print('Revision %s of %s' % (rev['id'], title))
         with open(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
             # Loop through revisions in reverse.
             for rev in revs[::-1]:

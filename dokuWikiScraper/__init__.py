@@ -1,4 +1,4 @@
-from dokuWikiScraper.dokudumper import dump
+from .dump.dokuDumper import dump
 
 def main():
-    dump(input('URL: '))
+    dump()

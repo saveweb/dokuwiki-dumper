@@ -3,15 +3,17 @@ import re
 import urllib.parse as urlparse
 from bs4 import BeautifulSoup
 
+from dokuWikiScraper.exceptions import DispositionHeaderMissingError, HTTPStatusError
+
 
 def getSourceExport(url, title, rev='', session=None):
     """Export the raw source of a page (at a given revision)"""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'export_raw'})
     if r.status_code != 200:
-        raise Exception('Error exporting: title=%s, rev=%s , HTTP status code: %d' % (title, rev, r.status_code))
+        raise HTTPStatusError(r)
     if 'Content-Disposition' not in r.headers:
-        raise Exception('Error exporting: title=%s, rev=%s , No Content-Disposition header' % (title, rev))
+        raise DispositionHeaderMissingError(r)
     
     return r.text
 
