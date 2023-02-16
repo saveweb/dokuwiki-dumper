@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "dokuWikiScraper"
+version = "0.0.1"
+description = "A tool for archiving DokuWiki"
+authors = ["PiRSquared17", "yzqzss <yzqzss@yandex.com>"]
+license = "GPL-3.0"
+readme = "README.md"
+
+packages = [
+    { include = "dokuWikiScraper/**/*" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.28.2"
+beautifulsoup4 = "^4.11.2"
+lxml = "^4.9.2"
+
+
+[tool.poetry.scripts]
+dokuWikiScraper = "dokuWikiScraper:main"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
