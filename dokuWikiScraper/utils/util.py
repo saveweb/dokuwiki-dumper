@@ -17,7 +17,7 @@ def avoidSites(url: str = ''):
         '\nthis will bring a lot of pressure to the server of '+ site +
         '\n\nContinue anyway? (y/n): ') != 'y':
             sys.exit(1)
-        
+
         print('You have been warned. :-)')
         time.sleep(3)
 
@@ -38,7 +38,7 @@ def standardizeUrl(url: str = ''):
 def getDokuUrl(url: str = '', session=requests.Session()):
     r = session.get(url)
     dokuUrl = r.url
-    
+
     return dokuUrl
 
 def buildBaseUrl(url: str = '') -> str:
@@ -58,7 +58,7 @@ def url2prefix(url):
     # At this point, both api and index are supposed to be defined
 
     # use request to transform prefix into a valid filename
-    
+
     r = urlparse(url)
     # prefix = r.netloc + r.path
     if r.path and r.path != '/' and not r.path.endswith('/'):
@@ -78,16 +78,22 @@ def url2prefix(url):
 
 def loadTitles(titlesFilePath) -> list[str]|None:
     """ Load titles from dump directory
-    
+
     Return:
         `list[str]`: titles
         `None`: titles file does not exist or incomplete
      """
     if os.path.exists(titlesFilePath):
-        with open(titlesFilePath, 'r') as f:
+        with uopen(titlesFilePath, 'r') as f:
             titles = f.read().splitlines()
         if len(titles) and titles[-1] == '--END--':
             print('Loaded %d titles from %s' % (len(titles) - 1, titlesFilePath))
             return titles[:-1]
-    
+
     return None
+
+
+def uopen(*args, **kwargs):
+    """ I dont wanna type `encoding=utf8` anymore.
+    Made for Windows compatibility :-( """
+    return open(*args, encoding='UTF-8', **kwargs)

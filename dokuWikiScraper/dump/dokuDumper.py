@@ -43,7 +43,7 @@ def checkArgs(args):
     if args.skip_to < 0:
         print('Skip to number must be >= 0.')
         return False
-    
+
     return True
 
 def getParameters():

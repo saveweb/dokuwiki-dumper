@@ -9,7 +9,7 @@ from dokuWikiScraper.exceptions import DispositionHeaderMissingError
 
 from .revisions import getRevisions, getSourceEdit, getSourceExport
 from .titles import getTitles
-from dokuWikiScraper.utils.util import loadTitles, smkdir
+from dokuWikiScraper.utils.util import loadTitles, smkdir, uopen
 
 
 def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
@@ -23,7 +23,7 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
     titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
     if titles is None:
         titles = getTitles(url=url, session=session)
-        with open(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
+        with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
             f.write('\n'.join(titles))
             f.write('\n--END--\n')
 
@@ -64,21 +64,21 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
             smkdir(dumpDir + '/pages/' + dir)
             smkdir(dumpDir + '/meta/' + dir)
             smkdir(dumpDir + '/attic/' + dir)
-        with open(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
+        with uopen(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
             f.write(getSource(url, title, session=session))
         revs = getRevisions(url, title, use_hidden_rev, select_revs, session=session)
         for rev in revs[1:]:
             if 'id' in rev and rev['id']:
                 try:
                     txt = getSource(url, title, rev['id'],session=session)
-                    with open(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                    with uopen(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                         f.write(txt)
                     print('    Revision %s of [[%s]] saved.' % (rev['id'], title))
                 except DispositionHeaderMissingError:
                     print('    Revision %s of [[%s]] is empty. (probably deleted)' % (rev['id'], title))
 
                 # time.sleep(1.5)
-        with open(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
+        with uopen(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
             # Loop through revisions in reverse.
             for rev in revs[::-1]:
                 print('    meta change saved:', rev)
