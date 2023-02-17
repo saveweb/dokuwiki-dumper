@@ -73,15 +73,15 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
                     txt = getSource(url, title, rev['id'],session=session)
                     with open(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                         f.write(txt)
-                    print('Revision %s of %s saved.' % (rev['id'], title))
+                    print('    Revision %s of [[%s]] saved.' % (rev['id'], title))
                 except DispositionHeaderMissingError:
-                    print('Revision %s of %s is empty. (probably deleted)' % (rev['id'], title))
+                    print('    Revision %s of [[%s]] is empty. (probably deleted)' % (rev['id'], title))
 
                 # time.sleep(1.5)
         with open(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
             # Loop through revisions in reverse.
             for rev in revs[::-1]:
-                print(rev, title)
+                print('    meta change saved:', rev)
                 sum = 'sum' in rev and rev['sum'].strip() or ''
                 id = 0
 
