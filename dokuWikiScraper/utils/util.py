@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 from urllib.parse import urlparse
 
 import requests
@@ -10,13 +11,15 @@ def avoidSites(url: str = ''):
     site = urlparse(url).netloc
     avoidList = ['www.dokuwiki.org'] # TODO: Add more sites
     if site in avoidList:
-        if input('You are trying to dump '+ site+ ' If you just want to test '+
-        'if this program can dump dokuwiki successfully, please do not do this,'+
-        'this will bring a lot of pressure to the server of '+ site +
-        '\nContinue? (y/n): ') != 'y':
+        if input('\nWarning:\nYou are trying to dump '+site+', which is in the avoid list. \n'+
+        'If you just want to test '+
+        'if this program can dump dokuwiki successfully, please DO NOT do this, '+
+        '\nthis will bring a lot of pressure to the server of '+ site +
+        '\n\nContinue anyway? (y/n): ') != 'y':
             sys.exit(1)
         
         print('You have been warned. :-)')
+        time.sleep(3)
 
 def smkdir(dir: str = '') -> bool:
     """ safe mkdir, return: True->created, False->existed """
