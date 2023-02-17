@@ -61,9 +61,8 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session=No
                 'first': continue_index})
 
         soup = BeautifulSoup(r.text, 'lxml')
-        lis = soup.findAll(
-            'div', {
-                'class': 'level1'})[0].findNext('ul').findAll('li')
+
+        lis = soup.find('form', {'id': 'page__revisions'}).find('ul').findAll('li')
 
         for li in lis:
             rev = {}
