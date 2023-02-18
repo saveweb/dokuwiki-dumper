@@ -56,7 +56,8 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None):
         for i in range(len(titleparts)):
             dir = "/".join(titleparts[:i])
             smkdir(prefix + '/media/' + dir)
-        with uopen(prefix + '/media/' + title.replace(':', '/'), 'wb') as f:
+        with open(prefix + '/media/' + title.replace(':', '/'), 'wb') as f:
+            # open in binary mode
             f.write(session.get(fetch, params={'media': title}).content)
         print('File %s' % title)
         # time.sleep(1.5)
