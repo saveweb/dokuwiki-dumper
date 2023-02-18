@@ -3,6 +3,7 @@ import socket
 import time
 
 from bs4 import BeautifulSoup
+from requests import Session
 
 from dokuWikiScraper.exceptions import DispositionHeaderMissingError
 
@@ -12,7 +13,7 @@ from .titles import getTitles
 from dokuWikiScraper.utils.util import loadTitles, smkdir, uopen
 
 
-def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
+def dumpContent(url:str = '',dumpDir:str = '', session:Session = None, skipTo:int = 0):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
     smkdir(dumpDir + '/pages')
@@ -45,13 +46,15 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
         'input', {
             'type': 'hidden', 'name': 'rev', 'value': True})
     use_hidden_rev = hidden_rev and hidden_rev[0]['value']
+    # TODO: what the `use_hidden_rev` is for?
 
     soup = BeautifulSoup(r3.text, 'lxml')
     select_revs = soup.findAll(
         'select', {
             'class': 'quickselect', 'name': 'rev2[0]'})
+    # TODO: what the `select_revs` is for?
 
-    indexOfTitle = -1 # # 0-based
+    indexOfTitle = -1 # 0-based
     if skipTo > 0:
         indexOfTitle = skipTo - 2
         titles = titles[skipTo-1:]
@@ -83,7 +86,7 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
         with uopen(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
             # Loop through revisions in reverse.
             for rev in revs[::-1]:
-                print('    meta change saved:', rev)
+                print('    meta change saving:', rev)
                 sum = 'sum' in rev and rev['sum'].strip() or ''
                 id = str(0)
 
