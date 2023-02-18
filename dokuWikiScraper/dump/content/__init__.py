@@ -122,7 +122,11 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
                 except socket.error:
                     user = rev['user']
 
-                row = '\t'.join([id, ip, 'e' if minor else 'E', title, user, sum])
+
+                extra = '' # TODO: use this
+                sizechange = '' # TODO: use this
+                sum = sum[:255] # max 255 chars(utf-8) for summary. (dokuwiki limitation) 
+                row = '\t'.join([id, ip, 'e' if minor else 'E', title, user, sum, extra, sizechange])
                 row = row.replace('\n', ' ')
                 row = row.replace('\r', ' ')
 
