@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import time
+from typing import *
 from urllib.parse import urlparse
 
 import requests
@@ -76,7 +77,7 @@ def url2prefix(url):
 
     return prefix
 
-def loadTitles(titlesFilePath) -> list[str]|None:
+def loadTitles(titlesFilePath) -> Optional[List[str]]:
     """ Load titles from dump directory
 
     Return:
