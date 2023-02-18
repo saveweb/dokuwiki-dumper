@@ -89,7 +89,7 @@ def loadTitles(titlesFilePath) -> Optional[List[str]]:
             titles = f.read().splitlines()
         if len(titles) and titles[-1] == '--END--':
             print('Loaded %d titles from %s' % (len(titles) - 1, titlesFilePath))
-            return titles[:-1]
+            return titles[:-1] # remove '--END--'
 
     return None
 
