@@ -67,6 +67,8 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
         with uopen(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
             f.write(getSource(url, title, session=session))
         revs = getRevisions(url, title, use_hidden_rev, select_revs, session=session)
+
+        revidOfPage: set[str] = set()
         for rev in revs[1:]:
             if 'id' in rev and rev['id']:
                 try:
@@ -83,7 +85,7 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
             for rev in revs[::-1]:
                 print('    meta change saved:', rev)
                 sum = 'sum' in rev and rev['sum'].strip() or ''
-                id = 0
+                id = str(0)
 
                 ip = '127.0.0.1'
                 user = ''
@@ -96,12 +98,21 @@ def dumpContent(url:str = '',dumpDir:str = '', session=None, skipTo:int = 0):
                     # If no ID was found, make one up based on the date (since rev IDs are Unix times)
                     # Maybe this is evil. Not sure.
 
+                    print('    One revision of [[%s]] missing rev_id. Using date to rebuild...' % title, end=' ')
                     try:
                         date = datetime.strptime(rev['date'], "%Y/%m/%d %H:%M")
                         id = str(int(time.mktime(date.utctimetuple())))
                     except:
                         date = datetime.strptime(rev['date'], "%d.%m.%Y %H:%M")
                         id = str(int(time.mktime(date.utctimetuple())))
+
+                    # if rev_id is not unique, plus 1 to it until it is.
+                    while id in revidOfPage:
+                        id = str(int(id) + 1)
+                    print('rev_id is now %s' % id)
+
+                revidOfPage.add(id)
+
 
                 rev['user'] = rev['user'] if 'user' in rev else 'unknown'
                 try:
