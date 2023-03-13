@@ -1,3 +1,3 @@
 if __name__ == '__main__':
-    from dokuWikiScraper import dump
+    from dokuWikiDumper import dump
     dump()

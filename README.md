@@ -1,4 +1,4 @@
-# DokuWiki Scraper
+# DokuWiki Dumper
 
 > A tool for archiving DokuWiki.
 
@@ -9,9 +9,9 @@
 - requests
 - lxml
 
-Recommend using `DokuWikiScraper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because of it denys many special characters in filename.
+Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because of it denys many special characters in filename.
 
-## Install `dokuWikiScraper` with `Poetry`
+## Install `dokuWikiDumper` with `Poetry`
 
 - Install `Poetry`
 
@@ -19,20 +19,19 @@ Recommend using `DokuWikiScraper` on _modern_ filesystems, such as `ext4` or `bt
     pip3 install poetry
     ```
 
-- Install `dokuWikiScraper`
+- Install `dokuWikiDumper`
 
     ```bash
-    git clone https://github.com/saveweb/dokuwiki-scraper
-    cd dokuwiki-scraper
+    git clone https://github.com/saveweb/dokuwiki-dumper
+    cd dokuwiki-dumper
     poetry install
     poetry build
-    pip install --force-reinstall dist/dokuWikiScraper*.whl
+    pip install --force-reinstall dist/dokuWikiDumper*.whl
     ```
-
 
 ## Usage
 
-`dokuWikiScraper [-h] [--content] [--media] [--skip-to SKIP_TO] url`
+`dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] url`
 
 ```text
 --content          Dump content
@@ -45,7 +44,7 @@ Recommend using `DokuWikiScraper` on _modern_ filesystems, such as `ext4` or `bt
 | Directory | Description |
 |-----------|-------------|
 | `attic` | old revisions of page. |
-| `dumpMeta` | (dokuWikiScraper only) metadata of the dump. |
+| `dumpMeta` | (dokuWikiDumper only) metadata of the dump. |
 | `media` | media files. |
 | `meta` |  metadata of the page. |
 | `pages` | latest page content. |
@@ -74,7 +73,7 @@ Import `meta` dir if you need the **changelog** of the page.
 Import `attic` and `meta` dirs if you need the old revisions **content** of the page.  
 Import `media` dir if you need the media files.
 
-`dumpMeta` dir is only used by `dokuWikiScraper`, you can ignore it.
+`dumpMeta` dir is only used by `dokuWikiDumper`, you can ignore it.
 
 ## Information
 

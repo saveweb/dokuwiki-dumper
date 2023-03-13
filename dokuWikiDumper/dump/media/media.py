@@ -4,7 +4,7 @@ import urllib.parse as urlparse
 
 from bs4 import BeautifulSoup
 
-from dokuWikiScraper.utils.util import smkdir, uopen
+from dokuWikiDumper.utils.util import smkdir, uopen
 
 
 def getFiles(url, ns:str = '',  dumpDir:str = '', session=None):

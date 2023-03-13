@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "dokuWikiScraper"
+name = "dokuWikiDumper"
 version = "0.0.1"
 description = "A tool for archiving DokuWiki"
 authors = ["PiRSquared17", "yzqzss <yzqzss@yandex.com>"]
@@ -7,7 +7,7 @@ license = "GPL-3.0"
 readme = "README.md"
 
 packages = [
-    { include = "dokuWikiScraper/**/*" },
+    { include = "dokuWikiDumper/**/*" },
 ]
 
 [tool.poetry.dependencies]
@@ -22,7 +22,7 @@ pytest = "^6.2.5"
 flake8 = "^4.0.1"
 
 [tool.poetry.scripts]
-dokuWikiScraper = "dokuWikiScraper:main"
+dokuWikiDumper = "dokuWikiDumper:main"
 
 
 [build-system]

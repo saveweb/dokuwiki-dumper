@@ -5,7 +5,7 @@ import urllib.parse as urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from dokuWikiScraper.exceptions import DispositionHeaderMissingError, HTTPStatusError
+from dokuWikiDumper.exceptions import DispositionHeaderMissingError, HTTPStatusError
 
 
 def getSourceExport(url, title, rev='', session:requests.Session=None):

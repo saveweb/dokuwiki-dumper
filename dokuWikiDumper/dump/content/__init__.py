@@ -5,12 +5,12 @@ import time
 from bs4 import BeautifulSoup
 from requests import Session
 
-from dokuWikiScraper.exceptions import DispositionHeaderMissingError
+from dokuWikiDumper.exceptions import DispositionHeaderMissingError
 
 
 from .revisions import getRevisions, getSourceEdit, getSourceExport
 from .titles import getTitles
-from dokuWikiScraper.utils.util import loadTitles, smkdir, uopen
+from dokuWikiDumper.utils.util import loadTitles, smkdir, uopen
 
 
 def dumpContent(url:str = '',dumpDir:str = '', session:Session = None, skipTo:int = 0):

@@ -14,14 +14,14 @@
 import argparse
 import gzip
 
-from dokuWikiScraper.dump.content import dumpContent
-from dokuWikiScraper.dump.media import dumpMedia
+from dokuWikiDumper.dump.content import dumpContent
+from dokuWikiDumper.dump.media import dumpMedia
 
-from dokuWikiScraper.utils.session import createSession
-from dokuWikiScraper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdir, standardizeUrl, url2prefix
+from dokuWikiDumper.utils.session import createSession
+from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdir, standardizeUrl, url2prefix
 
 def getArgumentParser():
-    parser = argparse.ArgumentParser(description='dokuWikiScraper')
+    parser = argparse.ArgumentParser(description='dokuWikiDumper')
     parser.add_argument('url', help='URL of the dokuWiki', type=str)
     parser.add_argument('--content', action='store_true', help='Dump content')
     parser.add_argument('--media', action='store_true', help='Dump media')
