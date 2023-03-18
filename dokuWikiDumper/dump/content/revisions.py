@@ -26,7 +26,11 @@ def getSourceEdit(url, title, rev='', session: requests.Session = None):
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
     soup = BeautifulSoup(r.text, 'lxml')
-    return ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
+    try:
+        return ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
+    except AttributeError as e:
+        if 'Action disabled: source' in r.text:
+            raise Exception('Action disabled: source/edit')
 
 
 def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session: requests.Session = None, msg_header: str = ''):

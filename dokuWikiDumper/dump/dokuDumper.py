@@ -33,15 +33,17 @@ def getArgumentParser():
     parser.add_argument('--content', action='store_true', help='Dump content')
     parser.add_argument('--media', action='store_true', help='Dump media')
     parser.add_argument(
-        '--skip-to', help='Skip to title number (default: 0)', type=int, default=0)
+        '--skip-to', help='Skip to title number [default: 0]', type=int, default=0)
     parser.add_argument(
-        '--path', help='Specify dump directory (default: <site>-<date>)', type=str, default='')
+        '--path', help='Specify dump directory [default: <site>-<date>]', type=str, default='')
     parser.add_argument(
-        '--no-resume', help='Do not resume a previous dump (default: resume)', action='store_true')
+        '--no-resume', help='Do not resume a previous dump [default: resume]', action='store_true')
     parser.add_argument(
-        '--threads', help='Number of threads to use (default: 1, not recommended to set > 5)', type=int, default=1)
+        '--threads', help='Number of sub threads to use [default: 1], not recommended to set > 5', type=int, default=1)
     parser.add_argument('--insecure', action='store_true',
                         help='Disable SSL certificate verification')
+    parser.add_argument('--ignore-errors', action='store_true',
+                        help='!DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.')
     # parser.add_argument('-u', '--user', help='Username')
     # parser.add_argument('-p', '--password', help='Password')
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
@@ -120,9 +122,11 @@ def dump():
     if args.content:
         print('\nDumping content...\n')
         dumpContent(doku_url=dokuUrl, dumpDir=dumpDir,
-                    session=session, skipTo=skipTo, threads=args.threads)
+                    session=session, skipTo=skipTo, threads=args.threads,
+                    ignore_errors=args.ignore_errors)
     if args.media:
         print('\nDumping media...\n')
         dumpMedia(url=baseUrl, dumpDir=dumpDir,
-                  session=session, threads=args.threads)
+                  session=session, threads=args.threads,
+                  ignore_errors=args.ignore_errors)
     print('\n\n--Done--')

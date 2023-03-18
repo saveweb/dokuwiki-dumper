@@ -16,7 +16,10 @@ from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 
-def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0, threads: int = 1):
+sub_thread_error = None
+
+
+def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0, threads: int = 1, ignore_errors: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
     smkdirs(dumpDir, '/pages')
@@ -40,7 +43,8 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
 
     getSource = getSourceExport
     if 'html' in r1.headers['content-type']:
-        print('Export not available, using edit')
+        print('\nWarning: export_raw action not available, using edit action\n')
+        time.sleep(3)
         getSource = getSourceEdit
 
     soup = BeautifulSoup(r2.text, 'lxml')
@@ -61,11 +65,23 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         index_of_title = skipTo - 2
         titles = titles[skipTo-1:]
 
+    def try_dump_page(*args, **kwargs):
+        try:
+            dump_page(*args, **kwargs)
+        except Exception as e:
+            if not ignore_errors:
+                global sub_thread_error
+                sub_thread_error = e
+                raise e
+            print('[',args[2]+1,']Error in sub thread: (', e, ') ignored')
     for title in titles:
         while threading.active_count() > threads:
             time.sleep(0.1)
+        if sub_thread_error:
+            raise sub_thread_error
+
         index_of_title += 1
-        t = threading.Thread(target=dump_page, args=(dumpDir,
+        t = threading.Thread(target=try_dump_page, args=(dumpDir,
                                                      getSource,
                                                      index_of_title,
                                                      title,

@@ -11,6 +11,9 @@ from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 
+sub_thread_error = None
+
+
 def getFiles(url, ns: str = '',  dumpDir: str = '', session=None):
     """ Return a list of media filenames of a wiki """
 
@@ -61,7 +64,7 @@ def getFiles(url, ns: str = '',  dumpDir: str = '', session=None):
     return files
 
 
-def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1):
+def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1, ignore_errors: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
 
@@ -72,9 +75,20 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1):
     fetch = urlparse.urljoin(url, 'lib/exe/fetch.php')
 
     files = getFiles(url, dumpDir=dumpDir, session=session)
+    def try_download(*args, **kwargs):
+        try:
+            download(*args, **kwargs)
+        except Exception as e:
+            if not ignore_errors:
+                global sub_thread_error
+                sub_thread_error = e
+                raise e
+            print(threading.current_thread().name, 'Error in sub thread: (', e, ') ignored')
     for title in files:
         while threading.active_count() > threads:
             time.sleep(0.1)
+        if sub_thread_error:
+            raise sub_thread_error
 
         def download(title, session: requests.Session):
             child_path = title.replace(':', '/')
@@ -123,7 +137,7 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1):
 
             # time.sleep(1.5)
 
-        t = threading.Thread(target=download, daemon=True,
+        t = threading.Thread(target=try_download, daemon=True,
                              args=(title, session))
         t.start()
 
