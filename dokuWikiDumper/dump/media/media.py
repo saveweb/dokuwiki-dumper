@@ -5,6 +5,7 @@ import time
 import urllib.parse as urlparse
 
 from bs4 import BeautifulSoup
+import requests
 
 from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
@@ -75,17 +76,37 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1):
         while threading.active_count() > threads:
             time.sleep(0.1)
 
-        def download(title, session):
+        def download(title, session: requests.Session):
             child_path = title.replace(':', '/')
             child_path = child_path.lstrip('/')
             child_path = '/'.join(child_path.split('/')[:-1])
             smkdirs(dumpDir + '/media/' + child_path)
+            file = dumpDir + '/media/' + title.replace(':', '/')
+            local_size = 0
+            if os.path.exists(file):
+                local_size = os.path.getsize(file)
+            with session.get(fetch, params={'media': title}, stream=True) as r:
+                r.raise_for_status()
 
-            with open(dumpDir + '/media/' + title.replace(':', '/'), 'wb') as f:
-                # open in binary mode
-                f.write(session.get(fetch, params={'media': title}).content)
-            print(threading.current_thread().name, 'File [[%s]] Done' % title)
+                remote_size = int(r.headers['Content-Length'])
+                if local_size == remote_size:
+                    print(threading.current_thread().name, 'File [[%s]] exists (%d bytes)' % (title, local_size))
+                else:
+                    r.raw.decode_content = True
+                    with open(file, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                        print(threading.current_thread().name, 'File [[%s]] Done' % title)
+                # modify mtime based on Last-Modified header
+                last_modified = r.headers.get('Last-Modified', None)
+                if last_modified:
+                    mtime = time.mktime(time.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z'))
+                    atime = os.stat(file).st_atime
+                    os.utime(file, times=(atime, mtime)) # atime is not modified
+                    # print(atime, mtime)
+                
             # time.sleep(1.5)
+
         t = threading.Thread(target=download, daemon=True,
                              args=(title, session))
         t.start()
