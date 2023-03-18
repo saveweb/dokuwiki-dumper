@@ -15,6 +15,9 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 
 ### dokuWikiUploader
 
+> **NOTE: `dokuWikiUploader` is not ready yet.**  
+> Upload dump to [Internet Archive](https://archive.org/)
+
 - internetarchive
 - 7z
 
@@ -62,8 +65,11 @@ options:
 | `attic/`                | old revisions of page.                      |
 | `dumpMeta/`             | (dokuWikiDumper only) metadata of the dump. |
 | `dumpMeta/config.json`  | dump's configuration.                       |
-| `dumpMeta/titles.txt`   | list of page title.                         |
+| `dumpMeta/favicon.ico`  | favicon of the site.                        |
 | `dumpMeta/files.txt`    | list of filename.                           |
+| `dumpMeta/index.html`   | homepage of the wiki.                       |
+| `dumpMeta/info.json`    | infomations of the wiki.                    |
+| `dumpMeta/titles.txt`   | list of page title.                         |
 | `media/`                | media files.                                |
 | `meta/`                 | metadata of the pages.                      |
 | `pages/`                | latest page content.                        |
