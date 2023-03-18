@@ -79,6 +79,15 @@ options:
 | `pages/`                | latest page content.                        |
 <!-- /Dump structure -->
 
+## Available Backups/Dumps
+
+> `dokuWikiDumper` and `dokuWikiUploader` is still in development, so there is no available backup on the Internet Archive yet.  
+
+I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.  
+I will upload them to the Internet Archive when `dokuWikiDumper` is stable enough and `dokuWikiUploader` is ready.
+
+> If you dumped a dokuwiki and want to share it, please feel free to open an issue, I will add it to the list.
+
 ## How to import dump to DokuWiki
 
 If you need to import dokuwiki, please add the following configuration to `local.php`
