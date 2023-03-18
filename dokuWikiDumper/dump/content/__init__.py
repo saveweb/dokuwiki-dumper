@@ -64,6 +64,7 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
     for title in titles:
         while threading.active_count() > threads:
             time.sleep(0.1)
+        index_of_title += 1
         t = threading.Thread(target=dump_page, args=(dumpDir,
                                                      getSource,
                                                      index_of_title,
@@ -73,7 +74,6 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
                                                      use_hidden_rev,
                                                      select_revs
                                                      ))
-        index_of_title += 1
         print('(%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
         t.daemon = True
         t.start()
@@ -139,12 +139,15 @@ def dump_page(dumpDir: str,
 
                 print(
                     msg_header, '    One revision of [[%s]] missing rev_id. Using date to rebuild...' % title, end=' ')
-                try:
-                    date = datetime.strptime(rev['date'], "%Y/%m/%d %H:%M")
-                    id = str(int(time.mktime(date.utctimetuple())))
-                except:
-                    date = datetime.strptime(rev['date'], "%d.%m.%Y %H:%M")
-                    id = str(int(time.mktime(date.utctimetuple())))
+                date_formats = ["%Y-%m-%d %H:%M", "%Y/%m/%d %H:%M", "%d.%m.%Y %H:%M"]
+                for date_format in date_formats:
+                    try:
+                        date = datetime.strptime(rev['date'], date_format)
+                        id = str(int(time.mktime(date.utctimetuple())))
+                        break
+                    except:
+                        id = None
+                       
 
                 # if rev_id is not unique, plus 1 to it until it is.
                 while id in revidOfPage:
