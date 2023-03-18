@@ -4,6 +4,8 @@ import time
 import requests
 import urllib3
 
+from dokuWikiDumper.__version__ import DUMPER_VERSION
+
 
 def createSession():
     session = requests.Session()
@@ -59,5 +61,8 @@ def createSession():
         session.mount("http://", HTTPAdapter(max_retries=__retries__))
     except:
         pass
+
+    session.headers.update({'User-Agent': 'dokuWikiDumper/' +
+                           DUMPER_VERSION + ' (https://github.com/saveweb/dokuwiki-dumper)'})
 
     return session
