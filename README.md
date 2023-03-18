@@ -42,7 +42,9 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 ## Usage
 
 ```bash
-usage: dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS] url
+usage: dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS] [--insecure] url
+
+dokuWikiDumper
 
 positional arguments:
   url                URL of the dokuWiki
@@ -54,7 +56,8 @@ options:
   --skip-to SKIP_TO  Skip to title number (default: 0)
   --path PATH        Specify dump directory (default: <site>-<date>)
   --no-resume        Do not resume a previous dump (default: resume)
-  --threads THREADS  Number of threads to use (default: 1)
+  --threads THREADS  Number of threads to use (default: 1, not recommended to set > 5)
+  --insecure         Disable SSL certificate verification
 ```
 
 ## Dump structure

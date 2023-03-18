@@ -14,6 +14,8 @@
 import argparse
 import os
 import time
+
+import requests
 # import gzip, 7z
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION
@@ -30,7 +32,6 @@ def getArgumentParser():
     parser.add_argument('url', help='URL of the dokuWiki', type=str)
     parser.add_argument('--content', action='store_true', help='Dump content')
     parser.add_argument('--media', action='store_true', help='Dump media')
-    # parser.add_argument('output', help='Output directory')
     parser.add_argument(
         '--skip-to', help='Skip to title number (default: 0)', type=int, default=0)
     parser.add_argument(
@@ -38,7 +39,9 @@ def getArgumentParser():
     parser.add_argument(
         '--no-resume', help='Do not resume a previous dump (default: resume)', action='store_true')
     parser.add_argument(
-        '--threads', help='Number of threads to use (default: 1)', type=int, default=1)
+        '--threads', help='Number of threads to use (default: 1, not recommended to set > 5)', type=int, default=1)
+    parser.add_argument('--insecure', action='store_true',
+                        help='Disable SSL certificate verification')
     # parser.add_argument('-u', '--user', help='Username')
     # parser.add_argument('-p', '--password', help='Password')
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
@@ -81,7 +84,13 @@ def dump():
     args = getParameters()
     urlInput = args.url
     skipTo = args.skip_to
+
     session = createSession()
+    if args.insecure:
+        session.verify = False
+        requests.packages.urllib3.disable_warnings()
+        print("Warning: SSL certificate verification disabled.")
+
     stdUrl = standardizeUrl(urlInput)
     dokuUrl = getDokuUrl(stdUrl, session=session)
     avoidSites(dokuUrl)
