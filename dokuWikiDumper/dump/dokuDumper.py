@@ -125,4 +125,4 @@ def dump():
         print('\nDumping media...\n')
         dumpMedia(url=baseUrl, dumpDir=dumpDir,
                   session=session, threads=args.threads)
-    print('--Done--')
+    print('\n\n--Done--')

@@ -82,29 +82,45 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1):
             child_path = '/'.join(child_path.split('/')[:-1])
             smkdirs(dumpDir + '/media/' + child_path)
             file = dumpDir + '/media/' + title.replace(':', '/')
-            local_size = 0
+            local_size = -1
             if os.path.exists(file):
                 local_size = os.path.getsize(file)
             with session.get(fetch, params={'media': title}, stream=True) as r:
                 r.raise_for_status()
 
-                remote_size = int(r.headers['Content-Length'])
-                if local_size == remote_size:
-                    print(threading.current_thread().name, 'File [[%s]] exists (%d bytes)' % (title, local_size))
+                if local_size == -1:  # file does not exist
+                    to_download = True
                 else:
+                    remote_size = int(r.headers.get('Content-Length', -2))
+                    if local_size == remote_size:  # file exists and is complete
+                        print(threading.current_thread().name,
+                              'File [[%s]] exists (%d bytes)' % (title, local_size))
+                        to_download = False
+                    elif remote_size == -2:
+                        print(threading.current_thread().name,
+                          'File [[%s]] cannot get remote size ("Content-Length" missing), ' % title +
+                          'will re-download anyway')
+                        to_download = True
+                    else:
+                        to_download = True  # file exists but is incomplete
+
+                if to_download:
                     r.raw.decode_content = True
                     with open(file, 'wb') as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             f.write(chunk)
-                        print(threading.current_thread().name, 'File [[%s]] Done' % title)
+                        print(threading.current_thread().name,
+                              'File [[%s]] Done' % title)
                 # modify mtime based on Last-Modified header
                 last_modified = r.headers.get('Last-Modified', None)
                 if last_modified:
-                    mtime = time.mktime(time.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z'))
+                    mtime = time.mktime(time.strptime(
+                        last_modified, '%a, %d %b %Y %H:%M:%S %Z'))
                     atime = os.stat(file).st_atime
-                    os.utime(file, times=(atime, mtime)) # atime is not modified
+                    # atime is not modified
+                    os.utime(file, times=(atime, mtime))
                     # print(atime, mtime)
-                
+
             # time.sleep(1.5)
 
         t = threading.Thread(target=download, daemon=True,
