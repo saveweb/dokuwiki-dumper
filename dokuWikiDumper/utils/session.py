@@ -15,7 +15,8 @@ def createSession():
         class CustomRetry(Retry):
             def increment(self, method=None, url=None, *args, **kwargs):
                 if '_pool' in kwargs:
-                    conn = kwargs['_pool'] # type: urllib3.connectionpool.HTTPSConnectionPool
+                    # type: urllib3.connectionpool.HTTPSConnectionPool
+                    conn = kwargs['_pool']
                     if 'response' in kwargs:
                         try:
                             # drain conn in advance so that it won't be put back into conn.pool
@@ -46,15 +47,17 @@ def createSession():
                     msg = 'req retry (%s)' % response.status
                 else:
                     msg = None
-                time.sleep(backoff) 
+                time.sleep(backoff)
 
         __retries__ = CustomRetry(
             total=5, backoff_factor=1.5,
             status_forcelist=[500, 502, 503, 504, 429],
-            allowed_methods=['DELETE', 'PUT', 'GET', 'OPTIONS', 'TRACE', 'HEAD', 'POST']
+            allowed_methods=['DELETE', 'PUT', 'GET',
+                             'OPTIONS', 'TRACE', 'HEAD', 'POST']
         )
         session.mount("https://", HTTPAdapter(max_retries=__retries__))
         session.mount("http://", HTTPAdapter(max_retries=__retries__))
     except:
         pass
+
     return session

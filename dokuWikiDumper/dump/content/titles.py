@@ -2,14 +2,15 @@
 
 import urllib.parse as urlparse
 from bs4 import BeautifulSoup
+from dokuWikiDumper.utils.util import print_with_lock as print
 
 
 def getTitles(url, ns=None, session=None):
     """Get titles given a doku.php URL and an (optional) namespace"""
-    
+
     # # force use of old method for now
     # return getTitlesOld(url, ns=None, session=session)
-    
+
     titles = []
     ajax = urlparse.urljoin(url, 'lib/exe/ajax.php')
     params = {'call': 'index'}
@@ -36,7 +37,8 @@ def getTitles(url, ns=None, session=None):
         else:
             titles.append(title)
     # time.sleep(1.5)
-    print('%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)'))
+    print('%sFound %d title(s) in namespace %s' %
+          (' ' * depth, len(titles), ns or '(all)'))
     return titles
 
 
@@ -83,6 +85,7 @@ def getTitlesOld(url, ns=None, ancient=False, session=None):
         else:
             titles.append(query['id'][0])
 
-    print('%sFound %d title(s) in namespace %s' % (' ' * depth, len(titles), ns or '(all)'))
+    print('%sFound %d title(s) in namespace %s' %
+          (' ' * depth, len(titles), ns or '(all)'))
 
     return titles

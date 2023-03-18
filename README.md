@@ -2,14 +2,21 @@
 
 > A tool for archiving DokuWiki.
 
+Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because of it denys many special characters in filename.
+
 ## Requirements
 
-- Python 3.8+ (tested on 3.10)
+### dokuWikiDumper
+
+- Python 3.8+ (developed on py3.10)
 - beautifulsoup4
 - requests
 - lxml
 
-Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because of it denys many special characters in filename.
+### dokuWikiUploader
+
+- internetarchive
+- 7z
 
 ## Install `dokuWikiDumper` with `Poetry`
 
@@ -31,27 +38,36 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 
 ## Usage
 
-`dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] url`
+```bash
+usage: dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS] url
 
-```text
---content          Dump content
---media            Dump media
---skip-to SKIP_TO  Skip to title number(default: 0)
+positional arguments:
+  url                URL of the dokuWiki
+
+options:
+  -h, --help         show this help message and exit
+  --content          Dump content
+  --media            Dump media
+  --skip-to SKIP_TO  Skip to title number (default: 0)
+  --path PATH        Specify dump directory (default: <site>-<date>)
+  --no-resume        Do not resume a previous dump (default: resume)
+  --threads THREADS  Number of threads to use (default: 1)
 ```
 
 ## Dump structure
 
-| Directory | Description |
-|-----------|-------------|
-| `attic` | old revisions of page. |
-| `dumpMeta` | (dokuWikiDumper only) metadata of the dump. |
-| `media` | media files. |
-| `meta` |  metadata of the page. |
-| `pages` | latest page content. |
-
-`dumpMeta/titles.txt`
-
-> List of page titles, last line is `--END--` if the list is complete.
+<!-- Dump structure -->
+| Directory or File       | Description                                 |
+|-----------              |-------------                                |
+| `attic/`                | old revisions of page.                      |
+| `dumpMeta/`             | (dokuWikiDumper only) metadata of the dump. |
+| `dumpMeta/config.json`  | dump's configuration.                       |
+| `dumpMeta/titles.txt`   | list of page title.                         |
+| `dumpMeta/files.txt`    | list of filename.                           |
+| `media/`                | media files.                                |
+| `meta/`                 | metadata of the pages.                      |
+| `pages/`                | latest page content.                        |
+<!-- /Dump structure -->
 
 ## How to import dump to DokuWiki
 

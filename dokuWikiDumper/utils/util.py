@@ -1,34 +1,52 @@
+import builtins
 import os
 import re
 import sys
+import threading
 import time
 from typing import *
 from urllib.parse import urlparse
 
 import requests
 
+fileLock = threading.Lock()
+printLock = threading.Lock()
+
+
+def print_with_lock(*args, **kwargs):
+    printLock.acquire()
+    builtins.print(*args, **kwargs)
+    printLock.release()
+
 
 def avoidSites(url: str = ''):
     site = urlparse(url).netloc
-    avoidList = ['www.dokuwiki.org'] # TODO: Add more sites
+    avoidList = ['www.dokuwiki.org']  # TODO: Add more sites
     if site in avoidList:
-        if input('\nWarning:\nYou are trying to dump '+site+', which is in the avoid list. \n'+
-        'If you just want to test '+
-        'if this program can dump dokuwiki successfully, please DO NOT do this, '+
-        '\nthis will bring a lot of pressure to the server of '+ site +
-        '\n\nContinue anyway? (y/n): ') != 'y':
+        if input('\nWarning:\nYou are trying to dump '+site+', which is in the avoid list. \n' +
+                 'If you just want to test ' +
+                 'if this program can dump dokuwiki successfully, please DO NOT do this, ' +
+                 '\nthis will bring a lot of pressure to the server of ' + site +
+                 '\n\nContinue anyway? (y/n): ') != 'y':
             sys.exit(1)
 
         print('You have been warned. :-)')
         time.sleep(3)
 
-def smkdir(dir: str = '') -> bool:
+
+def smkdirs(parent: str = '', child: str = '') -> bool:
     """ safe mkdir, return: True->created, False->existed """
+    child = child.lstrip('/')
+    dir = os.path.join(parent, child)
+    fileLock.acquire()
     if not os.path.exists(dir):
-        os.mkdir(dir)
+        os.makedirs(dir)
+        fileLock.release()
         return True
 
+    fileLock.release()
     return False
+
 
 def standardizeUrl(url: str = ''):
     """ Add http:// if not present """
@@ -36,11 +54,13 @@ def standardizeUrl(url: str = ''):
         url = 'http://' + url
     return url
 
-def getDokuUrl(url: str = '', session=requests.Session()):
+
+def getDokuUrl(url: str = '', session=requests.Session):
     r = session.get(url)
     dokuUrl = r.url
 
     return dokuUrl
+
 
 def buildBaseUrl(url: str = '') -> str:
     r = urlparse(url)
@@ -53,10 +73,9 @@ def buildBaseUrl(url: str = '') -> str:
 
     return baseUrl
 
+
 def url2prefix(url):
     """Convert URL to a valid prefix filename."""
-
-    # At this point, both api and index are supposed to be defined
 
     # use request to transform prefix into a valid filename
 
@@ -77,6 +96,7 @@ def url2prefix(url):
 
     return prefix
 
+
 def loadTitles(titlesFilePath) -> Optional[List[str]]:
     """ Load titles from dump directory
 
@@ -88,8 +108,9 @@ def loadTitles(titlesFilePath) -> Optional[List[str]]:
         with uopen(titlesFilePath, 'r') as f:
             titles = f.read().splitlines()
         if len(titles) and titles[-1] == '--END--':
-            print('Loaded %d titles from %s' % (len(titles) - 1, titlesFilePath))
-            return titles[:-1] # remove '--END--'
+            print('Loaded %d titles from %s' %
+                  (len(titles) - 1, titlesFilePath))
+            return titles[:-1]  # remove '--END--'
 
     return None
 
