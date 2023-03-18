@@ -56,6 +56,14 @@ def checkArgs(args):
     if args.skip_to < 0:
         print('Skip to number must be >= 0.')
         return False
+    if args.threads < 1:
+        print('Number of threads must be >= 1.')
+        return False
+    if args.threads > 10:
+        print('Warning: Number of threads > 10 may cause problems.')
+        time.sleep(3)
+        input('Press Enter to continue...')
+        return True
 
     return True
 
