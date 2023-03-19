@@ -47,18 +47,20 @@ usage: dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] [--path PAT
 dokuWikiDumper
 
 positional arguments:
-  url                URL of the dokuWiki
+  url                  URL of the dokuWiki
 
 options:
-  -h, --help         show this help message and exit
-  --content          Dump content
-  --media            Dump media
-  --skip-to SKIP_TO  Skip to title number [default: 0]
-  --path PATH        Specify dump directory [default: <site>-<date>]
-  --no-resume        Do not resume a previous dump [default: resume]
-  --threads THREADS  Number of sub threads to use [default: 1], not recommended to set > 5
-  --insecure         Disable SSL certificate verification
-  --ignore-errors    !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
+  -h, --help           show this help message and exit
+  --content            Dump content
+  --media              Dump media
+  --skip-to SKIP_TO    Skip to title number [default: 0]
+  --path PATH          Specify dump directory [default: <site>-<date>]
+  --no-resume          Do not resume a previous dump [default: resume]
+  --threads THREADS    Number of sub threads to use [default: 1], not recommended to set > 5
+  --insecure           Disable SSL certificate verification
+  --ignore-errors      !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
+  --username USERNAME  login: username
+  --password PASSWORD  login: password
 ```
 
 ## Dump structure

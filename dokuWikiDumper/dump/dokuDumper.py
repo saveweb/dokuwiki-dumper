@@ -23,7 +23,7 @@ from dokuWikiDumper.dump.content import dumpContent
 from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
 from dokuWikiDumper.utils.config import update_config
-from dokuWikiDumper.utils.session import createSession
+from dokuWikiDumper.utils.session import createSession, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, url2prefix
 
 
@@ -44,8 +44,8 @@ def getArgumentParser():
                         help='Disable SSL certificate verification')
     parser.add_argument('--ignore-errors', action='store_true',
                         help='!DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.')
-    # parser.add_argument('-u', '--user', help='Username')
-    # parser.add_argument('-p', '--password', help='Password')
+    parser.add_argument('--username', help='login: username')
+    parser.add_argument('--password', help='login: password')
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
 
     return parser
@@ -64,11 +64,18 @@ def checkArgs(args):
     if args.threads < 1:
         print('Number of threads must be >= 1.')
         return False
-    if args.threads > 10:
-        print('Warning: Number of threads > 10 may cause problems.')
+    if args.threads > 5:
+        print('Warning: threads > 5 , will bring a lot of pressure to the server.')
+        print('Original site may deny your request, even ban our UA.')
         time.sleep(3)
         input('Press Enter to continue...')
-        return True
+    if args.ignore_errors:
+        print('Warning: You have chosen to ignore errors in the sub threads. This may cause incomplete dumps.')
+        time.sleep(3)
+        input('Press Enter to continue...')
+    if args.username and not args.password:
+        print('Warning: You have specified a username but no password.')
+        return False
 
     return True
 
@@ -84,8 +91,8 @@ def getParameters():
 
 def dump():
     args = getParameters()
-    urlInput = args.url
-    skipTo = args.skip_to
+    url_input = args.url
+    skip_to = args.skip_to
 
     session = createSession()
     if args.insecure:
@@ -93,11 +100,17 @@ def dump():
         requests.packages.urllib3.disable_warnings()
         print("Warning: SSL certificate verification disabled.")
 
-    stdUrl = standardizeUrl(urlInput)
-    dokuUrl = getDokuUrl(stdUrl, session=session)
-    avoidSites(dokuUrl)
-    baseUrl = buildBaseUrl(dokuUrl)
-    dumpDir = url2prefix(dokuUrl) + '-' + \
+    std_url = standardizeUrl(url_input)
+    doku_url = getDokuUrl(std_url, session=session)
+
+    avoidSites(doku_url)
+
+    if args.username:
+        login_dokuwiki(doku_url=doku_url, session=session,
+                       username=args.username, password=args.password)
+
+    base_url = buildBaseUrl(doku_url)
+    dumpDir = url2prefix(doku_url) + '-' + \
         time.strftime("%Y%m%d") if not args.path else args.path
     if args.no_resume:
         if os.path.exists(dumpDir):
@@ -107,26 +120,27 @@ def dump():
 
     # smkdirs(dumpDir)
     smkdirs(dumpDir, '/dumpMeta')
-    print('Dumping to ', dumpDir, '\nBase URL: ',
-          baseUrl, '\nDokuPHP URL: ', dokuUrl)
+    print('Dumping to ', dumpDir,
+          '\nBase URL: ', base_url,
+          '\nDokuPHP URL: ', doku_url)
 
-    _config = {'url_input': urlInput,  # type: str
-               'std_url': stdUrl,  # type: str
-               'doku_url': dokuUrl,  # type: str
-               'base_url': baseUrl,  # type: str
+    _config = {'url_input': url_input,  # type: str
+               'std_url': std_url,  # type: str
+               'doku_url': doku_url,  # type: str
+               'base_url': base_url,  # type: str
                'dokuWikiDumper_version': DUMPER_VERSION,
                }
     update_config(dumpDir=dumpDir, config=_config)
-    update_info(dumpDir, doku_url=dokuUrl, session=session)
+    update_info(dumpDir, doku_url=doku_url, session=session)
 
     if args.content:
         print('\nDumping content...\n')
-        dumpContent(doku_url=dokuUrl, dumpDir=dumpDir,
-                    session=session, skipTo=skipTo, threads=args.threads,
+        dumpContent(doku_url=doku_url, dumpDir=dumpDir,
+                    session=session, skipTo=skip_to, threads=args.threads,
                     ignore_errors=args.ignore_errors)
     if args.media:
         print('\nDumping media...\n')
-        dumpMedia(url=baseUrl, dumpDir=dumpDir,
+        dumpMedia(url=base_url, dumpDir=dumpDir,
                   session=session, threads=args.threads,
                   ignore_errors=args.ignore_errors)
     print('\n\n--Done--')

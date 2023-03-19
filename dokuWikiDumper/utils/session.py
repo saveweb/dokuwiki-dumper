@@ -64,5 +64,27 @@ def createSession():
 
     session.headers.update({'User-Agent': 'dokuWikiDumper/' +
                            DUMPER_VERSION + ' (https://github.com/saveweb/dokuwiki-dumper)'})
+    print('User-Agent:',session.headers.get('User-Agent'))
 
     return session
+
+def login_dokuwiki(doku_url, session: requests.Session, username: str, password: str) -> bool:
+    before_login = session.cookies.get_dict()
+    data = {
+        'u': username,
+        'p': password,
+        'r': '1', # remember me
+        'do': 'login',
+        'sectok': '', # TODO: get sectok from login page
+        # 'id': 'start'
+    }
+    session.post(doku_url, data=data)
+    after_login = session.cookies.get_dict()
+    print(after_login)
+
+    if before_login == after_login:
+        print("Login failed!")
+        return False
+
+    print("Login success!")
+    return True
