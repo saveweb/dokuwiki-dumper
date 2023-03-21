@@ -7,7 +7,7 @@ import threading
 from bs4 import BeautifulSoup
 from requests import Session
 
-from dokuWikiDumper.exceptions import DispositionHeaderMissingError
+from dokuWikiDumper.exceptions import ActionEditDisabled, DispositionHeaderMissingError
 
 
 from .revisions import getRevisions, getSourceEdit, getSourceExport
@@ -19,7 +19,7 @@ from dokuWikiDumper.utils.util import print_with_lock as print
 sub_thread_error = None
 
 
-def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0, threads: int = 1, ignore_errors: bool = False):
+def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0, threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
     smkdirs(dumpDir, '/pages')
@@ -69,11 +69,14 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         try:
             dump_page(*args, **kwargs)
         except Exception as e:
-            if not ignore_errors:
+            if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
+                print('[',args[2]+1,'] action disabled: edit. ignored')
+            elif not ignore_errors:
                 global sub_thread_error
                 sub_thread_error = e
                 raise e
-            print('[',args[2]+1,']Error in sub thread: (', e, ') ignored')
+            else:
+                print('[',args[2]+1,']Error in sub thread: (', e, ') ignored')
     for title in titles:
         while threading.active_count() > threads:
             time.sleep(0.1)
@@ -90,7 +93,7 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
                                                      use_hidden_rev,
                                                      select_revs
                                                      ))
-        print('(%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
+        print('Content: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
         t.daemon = True
         t.start()
 
@@ -108,6 +111,7 @@ def dump_page(dumpDir: str,
               session: Session,
               use_hidden_rev,
               select_revs):
+    srouce = getSource(doku_url, title, session=session)
     msg_header = '['+str(index_of_title + 1)+']: '
     child_path = title.replace(':', '/')
     child_path = child_path.lstrip('/')
@@ -117,7 +121,7 @@ def dump_page(dumpDir: str,
     smkdirs(dumpDir, '/meta/' + child_path)
     smkdirs(dumpDir, '/attic/' + child_path)
     with uopen(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
-        f.write(getSource(doku_url, title, session=session))
+        f.write(srouce)
     revs = getRevisions(doku_url, title, use_hidden_rev,
                         select_revs, session=session, msg_header=msg_header)
 
@@ -180,12 +184,13 @@ def dump_page(dumpDir: str,
             except socket.error:
                 user = rev['user']
 
+            sizechange = rev['sizechange'] if 'sizechange' in rev else ''
+
             extra = ''  # TODO: use this
-            sizechange = ''  # TODO: use this
             # max 255 chars(utf-8) for summary. (dokuwiki limitation)
             sum = sum[:255]
             row = '\t'.join([id, ip, 'e' if minor else 'E',
-                            title, user, sum, extra, sizechange])
+                            title, user, sum, extra, str(sizechange)])
             row = row.replace('\n', ' ')
             row = row.replace('\r', ' ')
 

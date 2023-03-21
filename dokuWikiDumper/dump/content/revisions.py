@@ -5,7 +5,7 @@ import urllib.parse as urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from dokuWikiDumper.exceptions import DispositionHeaderMissingError, HTTPStatusError
+from dokuWikiDumper.exceptions import ActionEditDisabled, DispositionHeaderMissingError, HTTPStatusError
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 
@@ -30,10 +30,10 @@ def getSourceEdit(url, title, rev='', session: requests.Session = None):
         return ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
     except AttributeError as e:
         if 'Action disabled: source' in r.text:
-            raise Exception('Action disabled: source/edit')
+            raise ActionEditDisabled(title)
 
 
-def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session: requests.Session = None, msg_header: str = ''):
+def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, session: requests.Session = None, msg_header: str = ''):
     """ Get the revisions of a page. This is nontrivial because different versions of DokuWiki return completely different revision HTML.
 
     Returns a dict with the following keys: (None if not found or failed)
@@ -53,11 +53,12 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session: r
         'sum': None,
         'date': None,
         'minor': False,
+        'sizechange': 0,
     }
 
     # if select_revs:
     if False:  # disabled, it's not stable.
-        r = session.get(url, params={'id': title, 'do': 'diff'})
+        r = session.get(doku_url, params={'id': title, 'do': 'diff'})
         soup = BeautifulSoup(r.text, 'lxml')
         select = soup.find(
             'select', {
@@ -79,7 +80,7 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session: r
 
     while cont:
         r = session.get(
-            url,
+            doku_url,
             params={
                 'id': title,
                 'do': 'revisions',
@@ -114,7 +115,7 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session: r
                 del (obj1)
 
             # minor: bool
-            rev['minor'] = ('class', 'minor') in li.attrs
+            rev['minor'] = li.has_attr('class') and 'minor' in li['class']
 
             # summary: optional(str)
             sum_span = li.findAll('span', {'class': 'sum'})
@@ -145,6 +146,24 @@ def getRevisions(url, title, use_hidden_rev=False, select_revs=False, session: r
                     rev['date'])
                 if matches:
                     rev['date'] = matches[0]
+
+            # sizechange: optional(int)
+            sizechange_span = li.find('span', {'class': 'sizechange'})
+
+            if sizechange_span:
+                sizechange_text = sizechange_span.text.replace('\xC2\xA0', ' ').strip()
+                units = ['B', 'KB', 'MB', 'GB']
+                positive = '−' not in sizechange_text
+                size_change = re.sub(r'[^0-9.]', '', sizechange_text)
+                try:
+                    size_change = float(size_change)
+                except ValueError:
+                    size_change = 0.0
+
+                for unit in units[1:]:
+                    if unit in sizechange_text:
+                        size_change *= 1024
+                rev['sizechange'] = positive and int(size_change) or int(-size_change)
 
             # user: optional(str)
             # legacy

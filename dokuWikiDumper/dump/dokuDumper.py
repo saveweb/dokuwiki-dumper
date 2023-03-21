@@ -20,11 +20,12 @@ import requests
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION
 from dokuWikiDumper.dump.content import dumpContent
+from dokuWikiDumper.dump.html import dump_HTML
 from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
 from dokuWikiDumper.utils.config import update_config
-from dokuWikiDumper.utils.session import createSession, login_dokuwiki
-from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, url2prefix
+from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
+from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
 
 
 def getArgumentParser():
@@ -32,8 +33,9 @@ def getArgumentParser():
     parser.add_argument('url', help='URL of the dokuWiki', type=str)
     parser.add_argument('--content', action='store_true', help='Dump content')
     parser.add_argument('--media', action='store_true', help='Dump media')
+    parser.add_argument('--html', action='store_true', help='Dump HTML')
     parser.add_argument(
-        '--skip-to', help='Skip to title number [default: 0]', type=int, default=0)
+        '--skip-to', help='!DEV! Skip to title number [default: 0]', type=int, default=0)
     parser.add_argument(
         '--path', help='Specify dump directory [default: <site>-<date>]', type=str, default='')
     parser.add_argument(
@@ -44,16 +46,24 @@ def getArgumentParser():
                         help='Disable SSL certificate verification')
     parser.add_argument('--ignore-errors', action='store_true',
                         help='!DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.')
+    parser.add_argument('--ignore-action-disabled-edit', action='store_true',
+                        help='Some sites disable edit action for anonymous users and some core pages.'+
+                        'This option will ignore this error. But you may only get a partial dump. '+
+                        '(only works with --content)', dest='ignore_action_disabled_edit')
+
     parser.add_argument('--username', help='login: username')
     parser.add_argument('--password', help='login: password')
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--cookies', help='cookies file')
+    parser.add_argument('--auto', action='store_true', 
+                        help='dump: content+media+html, threads=5, ignore-action-disable-edit')
 
     return parser
 
 
 def checkArgs(args):
-    if not args.content and not args.media:
-        print('Nothing to do. Use --content and/or --media to specify what to dump.')
+    if not args.content and not args.media and not args.html:
+        print('Nothing to do. Use --content and/or --media and/or --html to specify what to dump.')
         return False
     if not args.url:
         print('No URL specified.')
@@ -76,6 +86,9 @@ def checkArgs(args):
     if args.username and not args.password:
         print('Warning: You have specified a username but no password.')
         return False
+    if  args.ignore_action_disabled_edit and not args.content:
+        print('Warning: You have specified --ignore-action-disabled-edit, but you have not specified --content.')
+        return False
 
     return True
 
@@ -83,6 +96,12 @@ def checkArgs(args):
 def getParameters():
     parser = getArgumentParser()
     args = parser.parse_args()
+    if args.auto:
+        args.content = True
+        args.media = True
+        args.html = True
+        args.threads = 5
+        args.ignore_action_disabled_edit = True
     if not checkArgs(args):
         parser.print_help()
         exit(1)
@@ -105,9 +124,13 @@ def dump():
 
     avoidSites(doku_url)
 
+    print('Init cookies:', session.cookies.get_dict())
     if args.username:
         login_dokuwiki(doku_url=doku_url, session=session,
                        username=args.username, password=args.password)
+    if args.cookies:
+        load_cookies(session, args.cookies)
+
 
     base_url = buildBaseUrl(doku_url)
     dumpDir = url2prefix(doku_url) + '-' + \
@@ -118,7 +141,6 @@ def dump():
                 'Dump directory already exists. (You can use --path to specify a different directory.)')
             return 1
 
-    # smkdirs(dumpDir)
     smkdirs(dumpDir, '/dumpMeta')
     print('Dumping to ', dumpDir,
           '\nBase URL: ', base_url,
@@ -132,15 +154,22 @@ def dump():
                }
     update_config(dumpDir=dumpDir, config=_config)
     update_info(dumpDir, doku_url=doku_url, session=session)
-
     if args.content:
         print('\nDumping content...\n')
         dumpContent(doku_url=doku_url, dumpDir=dumpDir,
                     session=session, skipTo=skip_to, threads=args.threads,
-                    ignore_errors=args.ignore_errors)
+                    ignore_errors=args.ignore_errors,
+                    ignore_action_disabled_edit=args.ignore_action_disabled_edit)
     if args.media:
         print('\nDumping media...\n')
         dumpMedia(url=base_url, dumpDir=dumpDir,
                   session=session, threads=args.threads,
                   ignore_errors=args.ignore_errors)
+    if args.html:
+        print('\nDumping HTML...\n')
+        dump_HTML(doku_url=doku_url, dumpDir=dumpDir,
+                  session=session, skipTo=skip_to, threads=args.threads,
+                  ignore_errors=args.ignore_errors)
+
+
     print('\n\n--Done--')

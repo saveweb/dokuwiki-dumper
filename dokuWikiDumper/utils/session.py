@@ -1,3 +1,7 @@
+
+import http.cookiejar
+import requests.utils
+import json
 import queue
 import time
 
@@ -5,6 +9,7 @@ import requests
 import urllib3
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION
+from dokuWikiDumper.utils.util import uopen
 
 
 def createSession():
@@ -76,15 +81,32 @@ def login_dokuwiki(doku_url, session: requests.Session, username: str, password:
         'r': '1', # remember me
         'do': 'login',
         'sectok': '', # TODO: get sectok from login page
-        # 'id': 'start'
+        'id': 'start'
     }
-    session.post(doku_url, data=data)
+    r = session.post(doku_url, params={'do': 'login', 'id': 'start'}, data=data)
+    print('Login status code:', r.status_code)
+    print(r.cookies.get_dict())
+    session.cookies.update(r.cookies)
     after_login = session.cookies.get_dict()
     print(after_login)
 
     if before_login == after_login:
-        print("Login failed!")
+        print("\n\nError: Login failed!")
+        print("Continue without login...")
+        time.sleep(5)
         return False
 
     print("Login success!")
     return True
+
+def load_cookies(session: requests.Session, cookies_file: str) -> bool:
+    with uopen(cookies_file, 'r') as f: # cookies.txt or cookies.json
+        if cookies_file.endswith('.json'):
+            cookies_dict = json.load(f)
+            cookies_dict = {c['Name raw']: c['Content raw'] for c in cookies_dict}
+            cj = requests.utils.cookiejar_from_dict(cookies_dict)
+        else:
+            cj = http.cookiejar.MozillaCookieJar()
+            cj.load(cookies_file, ignore_discard=True, ignore_expires=True)
+        session.cookies.update(cj)
+        print('Cookies loaded:', session.cookies.get_dict())

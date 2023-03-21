@@ -42,26 +42,51 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 ## Usage
 
 ```bash
-usage: dokuWikiDumper [-h] [--content] [--media] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS] [--insecure] [--ignore-errors] url
+usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS]
+                      [--insecure] [--ignore-errors] [--ignore-action-disabled-edit] [--username USERNAME] [--password PASSWORD]
+                      [--cookies COOKIES] [--auto]
+                      url
 
 dokuWikiDumper
 
 positional arguments:
-  url                  URL of the dokuWiki
+  url                   URL of the dokuWiki
 
 options:
-  -h, --help           show this help message and exit
-  --content            Dump content
-  --media              Dump media
-  --skip-to SKIP_TO    Skip to title number [default: 0]
-  --path PATH          Specify dump directory [default: <site>-<date>]
-  --no-resume          Do not resume a previous dump [default: resume]
-  --threads THREADS    Number of sub threads to use [default: 1], not recommended to set > 5
-  --insecure           Disable SSL certificate verification
-  --ignore-errors      !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
-  --username USERNAME  login: username
-  --password PASSWORD  login: password
+  -h, --help            show this help message and exit
+  --content             Dump content
+  --media               Dump media
+  --html                Dump HTML
+  --skip-to SKIP_TO     !DEV! Skip to title number [default: 0]
+  --path PATH           Specify dump directory [default: <site>-<date>]
+  --no-resume           Do not resume a previous dump [default: resume]
+  --threads THREADS     Number of sub threads to use [default: 1], not recommended to set > 5
+  --insecure            Disable SSL certificate verification
+  --ignore-errors       !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
+  --ignore-action-disabled-edit
+                        Some sites disable edit action for anonymous users and some core pages.This option will ignore this error.
+                        But you may only get a partial dump. (only works with --content)
+  --username USERNAME   login: username
+  --password PASSWORD   login: password
+  --cookies COOKIES     cookies file
+  --auto                dump: content+media+html, threads=5, ignore-action-disable-edit
 ```
+
+For most cases, you can use `--auto` to dump the site.
+
+```bash
+dokuWikiDumper https://example.com/wiki/ --auto
+```
+
+which is equivalent to
+
+```bash
+dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --ignore-action-disabled-edit
+```
+
+> Highly recommend using `--username` and `--password` to login (or using `--cookies`), because some sites may disable anonymous users to access some pages or check the raw wikitext.
+
+`--cookies` accepts a Netscape cookies file, you can use [cookies.txt Extension](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/) to export cookies from Firefox. It also accepts a json cookies file created by [Cookie Quick Manager](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/).
 
 ## Dump structure
 

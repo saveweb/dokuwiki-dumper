@@ -34,18 +34,24 @@ def avoidSites(url: str = ''):
         time.sleep(3)
 
 
-def smkdirs(parent: str = '', child: str = '') -> bool:
+def smkdirs(parent: str = None, *child: str)-> Optional[str]:
     """ safe mkdir, return: True->created, False->existed """
-    child = child.lstrip('/')
-    dir = os.path.join(parent, child)
+    if parent is None:
+        raise ValueError('parent must be specified')
+    
+    # lstrip / in child
+    child = [c.lstrip('/') for c in child]
+
+    dir = os.path.join(parent, *child)
+    # print(dir)
     fileLock.acquire()
     if not os.path.exists(dir):
         os.makedirs(dir)
         fileLock.release()
-        return True
+        return dir
 
     fileLock.release()
-    return False
+    return None
 
 
 def standardizeUrl(url: str = ''):
