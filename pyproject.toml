@@ -2,13 +2,17 @@
 name = "dokuWikiDumper"
 version = "0.1.0"
 description = "A tool for archiving DokuWiki"
-authors = ["PiRSquared17", "yzqzss <yzqzss@yandex.com>"]
+authors = ["yzqzss <yzqzss@yandex.com>"]
 license = "GPL-3.0"
 readme = "README.md"
 
 packages = [
     { include = "dokuWikiDumper/**/*" },
 ]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/saveweb/dokuwiki-dumper/issues"
+"repository" = "https://github.com/saveweb/dokuwiki-dumper/"
 
 [tool.poetry.dependencies]
 python = "^3.8"

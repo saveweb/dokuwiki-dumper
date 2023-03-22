@@ -21,7 +21,17 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 - internetarchive
 - 7z
 
-## Install `dokuWikiDumper` with `Poetry`
+## Install `dokuWikiDumper`
+
+### Install `dokuWikiDumper` with `pip` (recommended)
+
+> <https://pypi.org/project/dokuwikidumper/>
+
+```bash
+pip3 install dokuWikiDumper
+```
+
+### Install `dokuWikiDumper` with `Poetry` (for developers)
 
 - Install `Poetry`
 
@@ -35,6 +45,7 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
     git clone https://github.com/saveweb/dokuwiki-dumper
     cd dokuwiki-dumper
     poetry install
+    rm dist/ -rf
     poetry build
     pip install --force-reinstall dist/dokuWikiDumper*.whl
     ```
@@ -93,38 +104,38 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --
 <!-- Dump structure -->
 | Directory or File       | Description                                 |
 |-----------              |-------------                                |
-| `attic/`                | old revisions of page.                      |
+| `attic/`                | old revisions of page. (wikitext)           |
 | `dumpMeta/`             | (dokuWikiDumper only) metadata of the dump. |
+| `dumpMeta/check.html`   | ?do=check page of the wiki.                 |
 | `dumpMeta/config.json`  | dump's configuration.                       |
 | `dumpMeta/favicon.ico`  | favicon of the site.                        |
 | `dumpMeta/files.txt`    | list of filename.                           |
 | `dumpMeta/index.html`   | homepage of the wiki.                       |
 | `dumpMeta/info.json`    | infomations of the wiki.                    |
 | `dumpMeta/titles.txt`   | list of page title.                         |
+| `dumpMeta/html/`        | (dokuWikiDumper only) HTML of the pages.    |
 | `media/`                | media files.                                |
 | `meta/`                 | metadata of the pages.                      |
-| `pages/`                | latest page content.                        |
+| `pages/`                | latest page content. (wikitext)             |
 <!-- /Dump structure -->
 
 ## Available Backups/Dumps
 
-> `dokuWikiDumper` and `dokuWikiUploader` is still in development, so there is no available backup on the Internet Archive yet.  
-
 I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.  
-I will upload them to the Internet Archive when `dokuWikiDumper` is stable enough and `dokuWikiUploader` is ready.
+I will upload them to the Internet Archive when `dokuWikiUploader` is ready.
 
-> If you dumped a dokuwiki and want to share it, please feel free to open an issue, I will add it to the list.
+> If you dumped a DokuWiki and want to share it, please feel free to open an issue, I will add it to the list.
 
 ## How to import dump to DokuWiki
 
-If you need to import dokuwiki, please add the following configuration to `local.php`
+If you need to import Dokuwiki, please add the following configuration to `local.php`
 
 ```php
-$conf['fnencode'] = 'utf-8'; // dokuwiki default: 'safe' (url encode)
+$conf['fnencode'] = 'utf-8'; // Dokuwiki default: 'safe' (url encode)
 # 'safe' => Non-ASCII characters will be escaped as %xx form.
 # 'utf-8' => Non-ASCII characters will be preserved as UTF-8 characters.
 
-$conf['compression'] = '0'; // dokuwiki default: 'gz'.
+$conf['compression'] = '0'; // Dokuwiki default: 'gz'.
 # 'gz' => attic/<id>.<rev_id>.txt.gz
 # 'bz2' => attic/<id>.<rev_id>.txt.bz2
 # '0' => attic/<id>.<rev_id>.txt
