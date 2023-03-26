@@ -23,6 +23,7 @@ from dokuWikiDumper.dump.content import dumpContent
 from dokuWikiDumper.dump.html import dump_HTML
 from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
+from dokuWikiDumper.dump.pdf import dump_PDF
 from dokuWikiDumper.utils.config import update_config
 from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
@@ -34,6 +35,11 @@ def getArgumentParser():
     parser.add_argument('--content', action='store_true', help='Dump content')
     parser.add_argument('--media', action='store_true', help='Dump media')
     parser.add_argument('--html', action='store_true', help='Dump HTML')
+    parser.add_argument('--pdf', action='store_true',
+                        help='Dump PDF [default: false] (Only available on some wikis with the PDF export plugin)'+
+                        ' (Only dumps the latest PDF revision)')
+    parser.add_argument('--current-only', dest='current_only', action='store_true',
+                        help='Dump latest revision, no history [default: false] (only for HTML at the moment)')
     parser.add_argument(
         '--skip-to', help='!DEV! Skip to title number [default: 0]', type=int, default=0)
     parser.add_argument(
@@ -63,8 +69,8 @@ def getArgumentParser():
 
 
 def checkArgs(args):
-    if not args.content and not args.media and not args.html:
-        print('Nothing to do. Use --content and/or --media and/or --html to specify what to dump.')
+    if not args.content and not args.media and not args.html and not args.pdf:
+        print('Nothing to do. Use --content and/or --media and/or --html and/or --pdf to specify what to dump.')
         return False
     if not args.url:
         print('No URL specified.')
@@ -165,12 +171,18 @@ def dump():
         print('\nDumping HTML...\n')
         dump_HTML(doku_url=doku_url, dumpDir=dumpDir,
                   session=session, skipTo=skip_to, threads=args.threads,
-                  ignore_errors=args.ignore_errors)
+                  ignore_errors=args.ignore_errors, current_only=args.current_only)
     if args.media: # last, so that we can know the dump is complete.
         print('\nDumping media...\n')
         dumpMedia(url=base_url, dumpDir=dumpDir,
                   session=session, threads=args.threads,
                   ignore_errors=args.ignore_errors)
+    if args.pdf:
+        print('\nDumping PDF...\n')
+        dump_PDF(doku_url=base_url, dumpDir=dumpDir,
+                session=session, threads=args.threads,
+                ignore_errors=args.ignore_errors, current_only=True)
+                # to avoid overload the server, we only dump the current revision of the PDF.
 
 
     print('\n\n--Done--')

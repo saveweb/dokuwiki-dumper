@@ -70,6 +70,8 @@ options:
   --content             Dump content
   --media               Dump media
   --html                Dump HTML
+  --pdf                 Dump PDF [default: false] (Only available on some wikis with the PDF export plugin) (Only dumps the latest PDF revision)
+  --current-only        Dump latest revision, no history [default: false] (only for HTML at the moment)
   --skip-to SKIP_TO     !DEV! Skip to title number [default: 0]
   --path PATH           Specify dump directory [default: <site>-<date>]
   --no-resume           Do not resume a previous dump [default: resume]

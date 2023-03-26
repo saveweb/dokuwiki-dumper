@@ -4,20 +4,20 @@ import time
 import requests
 from dokuWikiDumper.dump.content.revisions import getRevisions
 from dokuWikiDumper.dump.content.titles import getTitles
-
 from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 
-HTML_DIR = 'html/'
-HTML_PAGR_DIR = HTML_DIR + 'pages/'
-HTML_OLDPAGE_DIR = HTML_DIR + 'attic/'
+from dokuWikiDumper.exceptions import DispositionHeaderMissingError
+
+PDF_DIR = 'pdf/'
+PDF_PAGR_DIR = PDF_DIR + 'pages/'
+PDF_OLDPAGE_DIR = PDF_DIR + 'attic/'
 
 sub_thread_error = None
 
-def dump_HTML(doku_url, dumpDir,
+def dump_PDF(doku_url, dumpDir,
                   session: requests.Session, skipTo: int = 0, threads: int = 1,
                   ignore_errors: bool = False, current_only: bool = False):
-    smkdirs(dumpDir, HTML_PAGR_DIR)
 
     titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
     if titles is None:
@@ -35,9 +35,9 @@ def dump_HTML(doku_url, dumpDir,
         index_of_title = skipTo - 2
         titles = titles[skipTo-1:]
 
-    def try_dump_html_page(*args, **kwargs):
+    def try_to_dump_pdf(*args, **kwargs):
         try:
-            dump_html_page(*args, **kwargs)
+            _dump_pdf(*args, **kwargs)
         except Exception as e:
             if not ignore_errors:
                 global sub_thread_error
@@ -51,13 +51,13 @@ def dump_HTML(doku_url, dumpDir,
             raise sub_thread_error
 
         index_of_title += 1
-        t = threading.Thread(target=try_dump_html_page, args=(dumpDir,
+        t = threading.Thread(target=try_to_dump_pdf, args=(dumpDir,
                                                     index_of_title,
                                                     title,
                                                     doku_url,
                                                     session,
                                                     current_only))
-        print('HTML: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
+        print('PDF: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
         t.daemon = True
         t.start()
 
@@ -66,21 +66,20 @@ def dump_HTML(doku_url, dumpDir,
         print('Waiting for %d threads to finish' %
             (threading.active_count() - 1), end='\r')
 
-def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.Session, current_only: bool = False):
-    r = session.get(doku_url, params={'do': 'export_xhtml', 'id': title})
-    # export_html is a alias of export_xhtml
+def _dump_pdf(dumpDir, index_of_title, title, doku_url, session: requests.Session, current_only: bool = False):
+    r = session.get(doku_url, params={'do': 'export_pdf', 'id': title})
     r.raise_for_status()
-    if r.text is None or r.text == '':
-        raise Exception(f'Empty response (r.text)')
-
+    if 'Content-Disposition' not in r.headers:
+        raise DispositionHeaderMissingError(r)
+    content = r.content
     msg_header = '['+str(index_of_title + 1)+']: '
 
     child_path = title.replace(':', '/')
     child_dir = os.path.dirname(child_path)
-    html_path = dumpDir + '/' + HTML_PAGR_DIR + child_path + '.html'
-    smkdirs(dumpDir, HTML_PAGR_DIR, child_dir)
-    with uopen(html_path, 'w') as f:
-        f.write(r.text)
+    pdf_path = dumpDir + '/' + PDF_PAGR_DIR + child_path + '.pdf'
+    smkdirs(dumpDir, PDF_PAGR_DIR, child_dir)
+    with open(pdf_path, 'bw') as f:
+        f.write(content)
         print(msg_header, '[[%s]]' % title, 'saved')
     
     if current_only:
@@ -91,15 +90,14 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                r = session.get(doku_url, params={'do': 'export_xhtml', 'id': title, 'rev': rev['id']})
+                r = session.get(doku_url, params={'do': 'export_pdf', 'id': title, 'rev': rev['id']})
                 r.raise_for_status()
-                if r.text is None or r.text == '':
-                    raise Exception(f'Empty response (r.text)')
-                smkdirs(dumpDir, HTML_OLDPAGE_DIR, child_dir)   
-                old_html_path = dumpDir + '/' + HTML_OLDPAGE_DIR + child_path + '.' + rev['id'] + '.html'
+                content = r.content
+                smkdirs(dumpDir, PDF_OLDPAGE_DIR, child_dir)   
+                old_pdf_path = dumpDir + '/' + PDF_OLDPAGE_DIR + child_path + '.' + rev['id'] + '.pdf'
 
-                with uopen(old_html_path, 'w') as f:
-                    f.write(r.text)
+                with open(old_pdf_path, 'bw') as f:
+                    f.write(content)
                 print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], title))
             except requests.HTTPError as e:
                 print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, e))

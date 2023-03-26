@@ -114,7 +114,7 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
             "language": language,
         })
 
-    dirs_to_7z = ["attic","html","media","pages"]
+    dirs_to_7z = ["attic","html","media","pages", "pdf"]
     filedict = {} # "remote filename": "local filename"
 
     # list all files in dump_dir/dumpMeta
@@ -125,7 +125,7 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
         _dir = os.path.join(dump_dir, dir)
         if os.path.isdir(_dir):
             print(f"Compressing {_dir}...")
-            level = 1 if dir == "media" else 5 # 
+            level = 1 if (dir == "media" or dir == "pdf") else 5
             filedict.update({identifier_local+"-"+dir+".7z": compress(_dir, path7z, level=level)})
 
     # Upload files and update metadata

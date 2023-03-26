@@ -22,9 +22,6 @@ sub_thread_error = None
 def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0, threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
-    smkdirs(dumpDir, '/pages')
-    smkdirs(dumpDir, '/attic')
-    smkdirs(dumpDir, '/meta')
 
     titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
     if titles is None:
@@ -71,7 +68,7 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         except Exception as e:
             if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
                 print('[',args[2]+1,'] action disabled: edit. ignored')
-            if isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
+            elif isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
                 print('[',args[2]+1,'] action edit: textarea not found. ignored')
             elif not ignore_errors:
                 global sub_thread_error
@@ -120,8 +117,6 @@ def dump_page(dumpDir: str,
     child_path = '/'.join(child_path.split('/')[:-1])
 
     smkdirs(dumpDir, '/pages/' + child_path)
-    smkdirs(dumpDir, '/meta/' + child_path)
-    smkdirs(dumpDir, '/attic/' + child_path)
     with uopen(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
         f.write(srouce)
     revs = getRevisions(doku_url, title, use_hidden_rev,
@@ -132,6 +127,7 @@ def dump_page(dumpDir: str,
         if 'id' in rev and rev['id']:
             try:
                 txt = getSource(doku_url, title, rev['id'], session=session)
+                smkdirs(dumpDir, '/attic/' + child_path)
                 with uopen(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                     f.write(txt)
                 print(msg_header, '    Revision %s of [[%s]] saved.' % (
@@ -141,6 +137,8 @@ def dump_page(dumpDir: str,
                     rev['id'], title))
 
             # time.sleep(1.5)
+
+    smkdirs(dumpDir, '/meta/' + child_path)
     with uopen(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
         # Loop through revisions in reverse.
         for rev in revs[::-1]:
