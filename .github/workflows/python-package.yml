@@ -38,6 +38,7 @@ jobs:
     - name: run dokuWikiDumper
       run: |
         python -m dokuWikiDumper -h
+        python -m dokuWikiUploader -h
     # - name: Test with pytest
       # run: |
         # pytest
