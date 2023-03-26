@@ -160,15 +160,15 @@ def dump():
                     session=session, skipTo=skip_to, threads=args.threads,
                     ignore_errors=args.ignore_errors,
                     ignore_action_disabled_edit=args.ignore_action_disabled_edit)
-    if args.media:
-        print('\nDumping media...\n')
-        dumpMedia(url=base_url, dumpDir=dumpDir,
-                  session=session, threads=args.threads,
-                  ignore_errors=args.ignore_errors)
     if args.html:
         print('\nDumping HTML...\n')
         dump_HTML(doku_url=doku_url, dumpDir=dumpDir,
                   session=session, skipTo=skip_to, threads=args.threads,
+                  ignore_errors=args.ignore_errors)
+    if args.media: # last, so that we can know the dump is complete.
+        print('\nDumping media...\n')
+        dumpMedia(url=base_url, dumpDir=dumpDir,
+                  session=session, threads=args.threads,
                   ignore_errors=args.ignore_errors)
 
 

@@ -15,7 +15,10 @@ from dokuWikiDumper.utils.config import get_config
 from .__version__ import UPLOADER_VERSION
 
 collection = 'opensource'
+# collection = 'test_collection'
 USER_AGENT = 'dokuWikiUploader/' + UPLOADER_VERSION
+
+UPLOADED_MARK = 'uploaded_to_IA.mark'
 
 
 def file_sha1(path):
@@ -60,16 +63,29 @@ def upload(args={}):
     title = title if title else 'Unknown'
     try:
         _dump_dir_ab = os.path.abspath(dump_dir)
-        _dump_dir_name = os.path.basename(_dump_dir_ab)
-        _dump_dir_name = _dump_dir_name.split('-')
-        identifier = _dump_dir_name[0] + '-' + _dump_dir_name[1]
-    except:
-        identifier = url2prefix(info.get(INFO_DOKU_URL)) + '-' +  time.strftime("%Y%m%d")
+        _dump_dir_basename = os.path.basename(_dump_dir_ab)
+        __dump_dir_basename = _dump_dir_basename.split('-')
+        if len(__dump_dir_basename) >= 2: # Punycoded domain may contain multiple `-`
+            if int(__dump_dir_basename[-1]) < 20230200:
+                raise ValueError('Invalid dump directory name: %s, OMG, I cannot believe it was created before dokuWikiDumper was born!? (0w0)' % _dump_dir_basename)
+        else:
+            raise ValueError('Invalid dump directory name: %s' % _dump_dir_basename)
+        identifier_local = _dump_dir_basename
+    except Exception as e:
+        print(e)
+        print("\nSomething went wrong during generating the identifier. \n")
+        raise e
+    
+    identifier_remote = 'wiki-' + identifier_local # 'wiki-' is the prefix of all wikis in archive.org
+    # currently(>=0.0.4), just add 'wiki-' as the prefix of the remote identifier
+    # but still use the local identifier as the filename prefix of the remote files
+
+    # identifier_remote = 'test-wiki-' + identifier_local # 
 
     description = \
 f'''DokuWiki: [{title}].
 
-Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">dokuWiki-Dumper</a> v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.
+Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">DokuWiki-Dumper</a> v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.
 '''
     keywords = [
                     "wiki",
@@ -86,34 +102,44 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
         "collection": collection,
         "title": "Wiki - " + title,
         "description": description,
-        "language": info.get(INFO_LANG) if info.get(INFO_LANG) else config.get('lang'), # 'lang' as the key name <= dokuWikiDumper v0.1.0
         "last-updated-date": time.strftime("%Y-%m-%d"),
         "subject": "; ".join(
             keywords
         ),  # Keywords should be separated by ; but it doesn't matter much; the alternative is to set one per field with subject[0], subject[1], ...
         "originalurl": info.get(INFO_DOKU_URL),
     }
+    language = info.get(INFO_LANG) if info.get(INFO_LANG) else config.get('lang')
+    if language:
+        md.update({
+            "language": language,
+        })
+
     dirs_to_7z = ["attic","html","media","pages"]
-    filedict = {} # remote filename: local filename
+    filedict = {} # "remote filename": "local filename"
+
     # list all files in dump_dir/dumpMeta
     for dir in os.listdir(os.path.join(dump_dir, "dumpMeta/")):
-        filedict.update({identifier+"-"+"dumpMeta/"+os.path.basename(dir): os.path.join(dump_dir, "dumpMeta/", dir)})
+        filedict.update({identifier_local+"-"+"dumpMeta/"+os.path.basename(dir): os.path.join(dump_dir, "dumpMeta/", dir)})
+
     for dir in dirs_to_7z:
         _dir = os.path.join(dump_dir, dir)
         if os.path.isdir(_dir):
-            print(f"Compressing {_dir}...\n")
+            print(f"Compressing {_dir}...")
             level = 1 if dir == "media" else 5 # 
-            filedict.update({identifier+"-"+dir+".7z": compress(_dir, path7z, level=level)})
+            filedict.update({identifier_local+"-"+dir+".7z": compress(_dir, path7z, level=level)})
 
     # Upload files and update metadata
     print("Preparing to upload...")
     try:
-        item = get_item(identifier)
+        print(f"Identifier (Local): {identifier_local}")
+        print(f"Identifier (Remote): {identifier_remote}")
+        item = get_item(identifier_remote)
         for file_in_item in item.files:
             if file_in_item["name"] in filedict:
                 filedict.pop(file_in_item["name"])
-                print(f"File {file_in_item['name']} already exists in {identifier}.")
+                print(f"File {file_in_item['name']} already exists in {identifier_remote}.")
         print(f"Uploading {len(filedict)} files...")
+        print(md)
         r = item.upload(
             files=filedict,
             metadata=md,
@@ -126,10 +152,10 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
         item.modify_metadata(md)  # update
         print(
             "You can find it in https://archive.org/details/%s"
-            % (identifier)
+            % (identifier_remote)
         )
     except Exception as e:
-        print(e)
+        raise e
 
 def compress(dir, bin7z: str, level: int = 5):
     ''' Compress dir into dump_dir.7z and return the absolute path to the compressed file. '''
@@ -162,8 +188,15 @@ def main(params=[]):
     parser.add_argument("dump_dir", help="Path to the wiki dump directory.")
     args = parser.parse_args()
 
+    if os.path.exists(os.path.join(args.dump_dir, UPLOADED_MARK)):
+        print("This dump has already been uploaded.")
+        print("If you want to upload it again, please remove the file '%s'." % UPLOADED_MARK)
+        return 0
+
     upload(args)
 
+    with open(os.path.join(args.dump_dir, UPLOADED_MARK), "w", encoding='UTF-8') as f:
+        f.write("Uploaded to Internet Archive with dokuWikiUploader v%s on %s" % (UPLOADER_VERSION, time.strftime("%Y-%m-%d %H:%M:%S")))
 
 if __name__ == "__main__":
     main()

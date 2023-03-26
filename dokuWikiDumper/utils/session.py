@@ -92,7 +92,7 @@ def login_dokuwiki(doku_url, session: requests.Session, username: str, password:
 
     if before_login == after_login:
         print("\n\nError: Login failed!")
-        print("Continue without login...")
+        input("Continue without login? (Ctrl + C to exit)")
         time.sleep(5)
         return False
 
