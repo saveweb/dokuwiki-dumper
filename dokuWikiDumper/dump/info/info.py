@@ -14,7 +14,12 @@ HOMEPAGE_FILEPATH = 'dumpMeta/index.html'
 CHECKPAGE_FILEPATH = 'dumpMeta/check.html'
 ICON_FILEPATH = 'dumpMeta/favicon.ico'
 
-
+# info.json keys
+INFO_WIKI_NAME = "wiki_name"
+INFO_RAW_TITLE = "raw_title"
+INFO_DOKU_URL = "doku_url"
+INFO_LANG = "language"
+INFO_ICON_URL = "icon_url"
 
 def get_info(dumpDir: str) -> dict:
     if os.path.exists(os.path.join(dumpDir, INFO_FILEPATH)):
@@ -100,11 +105,11 @@ def update_info(dumpDir: str, doku_url: str, session: requests.Session):
     save_icon(dumpDir=dumpDir, url=icon_url, session=session)
 
     info = {
-        'wiki_name': wiki_name,
-        'raw_title': raw_title,
-        'doku_url': doku_url,
-        'lang': lang,
-        'icon_url': icon_url,
+        INFO_WIKI_NAME: wiki_name,
+        INFO_RAW_TITLE: raw_title,
+        INFO_DOKU_URL: doku_url,
+        INFO_LANG: lang,
+        INFO_ICON_URL: icon_url,
     }
     print('Info:', info)
     update_info_json(dumpDir, info)

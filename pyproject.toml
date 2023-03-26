@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dokuWikiDumper"
-version = "0.1.0"
+version = "0.1.1"
 description = "A tool for archiving DokuWiki"
 authors = ["yzqzss <yzqzss@yandex.com>"]
 license = "GPL-3.0"
@@ -8,6 +8,7 @@ readme = "README.md"
 
 packages = [
     { include = "dokuWikiDumper/**/*" },
+    { include = "dokuWikiUploader/**/*" },
 ]
 
 [tool.poetry.urls]
@@ -19,6 +20,7 @@ python = "^3.8"
 requests = "^2.28.2"
 beautifulsoup4 = "^4.11.2"
 lxml = "^4.9.2"
+internetarchive = "^3.3.0"
 
 
 [tool.poetry.dev-dependencies]
@@ -27,6 +29,7 @@ flake8 = "^4.0.1"
 
 [tool.poetry.scripts]
 dokuWikiDumper = "dokuWikiDumper:main"
+dokuWikiUploader = "dokuWikiUploader:main"
 
 
 [build-system]

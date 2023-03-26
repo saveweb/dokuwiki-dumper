@@ -84,8 +84,9 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1, 
                 sub_thread_error = e
                 raise e
             print(threading.current_thread().name, 'Error in sub thread: (', e, ') ignored')
-    index_of_title = 0
+    index_of_title = -1
     for title in files:
+        index_of_title += 1
         while threading.active_count() > threads:
             time.sleep(0.1)
         if sub_thread_error:

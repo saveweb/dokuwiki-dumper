@@ -29,7 +29,7 @@ from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkd
 
 
 def getArgumentParser():
-    parser = argparse.ArgumentParser(description='dokuWikiDumper')
+    parser = argparse.ArgumentParser(description='dokuWikiDumper Version: '+ DUMPER_VERSION)
     parser.add_argument('url', help='URL of the dokuWiki', type=str)
     parser.add_argument('--content', action='store_true', help='Dump content')
     parser.add_argument('--media', action='store_true', help='Dump media')

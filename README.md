@@ -15,13 +15,15 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 
 ### dokuWikiUploader
 
-> **NOTE: `dokuWikiUploader` is not ready yet.**  
-> Upload dump to [Internet Archive](https://archive.org/)
+> Upload wiki dump to [Internet Archive](https://archive.org/).
+> `dokuWikiUploader -h` for help.
 
 - internetarchive
-- 7z
+- 7z (`7z` command)
 
 ## Install `dokuWikiDumper`
+
+> `dokuWikiUploader` is included in `dokuWikiDumper`.
 
 ### Install `dokuWikiDumper` with `pip` (recommended)
 
@@ -113,7 +115,7 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --
 | `dumpMeta/index.html`   | homepage of the wiki.                       |
 | `dumpMeta/info.json`    | infomations of the wiki.                    |
 | `dumpMeta/titles.txt`   | list of page title.                         |
-| `dumpMeta/html/`        | (dokuWikiDumper only) HTML of the pages.    |
+| `html/`                 | (dokuWikiDumper only) HTML of the pages.    |
 | `media/`                | media files.                                |
 | `meta/`                 | metadata of the pages.                      |
 | `pages/`                | latest page content. (wikitext)             |
@@ -121,8 +123,7 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --
 
 ## Available Backups/Dumps
 
-I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.  
-I will upload them to the Internet Archive when `dokuWikiUploader` is ready.
+I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.
 
 > If you dumped a DokuWiki and want to share it, please feel free to open an issue, I will add it to the list.
 
@@ -146,7 +147,7 @@ Import `meta` dir if you need the **changelog** of the page.
 Import `attic` and `meta` dirs if you need the old revisions **content** of the page.  
 Import `media` dir if you need the media files.
 
-`dumpMeta` dir is only used by `dokuWikiDumper`, you can ignore it.
+`dumpMeta` and `html` dirs are only used by `dokuWikiDumper`, you can ignore it.
 
 ## Information
 
