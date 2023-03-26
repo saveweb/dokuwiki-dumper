@@ -146,7 +146,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
             if date_span:
                 rev['date'] = date_span.text.strip()
             else:
-                rev['date'] = ' '.join(li.text.split(' ')[:2])
+                rev['date'] = ' '.join(li.text.strip().split(' ')[:2])
                 matches = re.findall(
                     r'([0-9./]+ [0-9]{1,2}:[0-9]{1,2})',
                     rev['date'])
