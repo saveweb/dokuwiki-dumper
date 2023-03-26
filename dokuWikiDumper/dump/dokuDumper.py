@@ -47,8 +47,9 @@ def getArgumentParser():
     parser.add_argument('--ignore-errors', action='store_true',
                         help='!DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.')
     parser.add_argument('--ignore-action-disabled-edit', action='store_true',
-                        help='Some sites disable edit action for anonymous users and some core pages.'+
-                        'This option will ignore this error. But you may only get a partial dump. '+
+                        help='Some sites disable edit action for anonymous users and some core pages. '+
+                        'This option will ignore this error and textarea not found error.'+
+                        'But you may only get a partial dump. '+
                         '(only works with --content)', dest='ignore_action_disabled_edit')
 
     parser.add_argument('--username', help='login: username')

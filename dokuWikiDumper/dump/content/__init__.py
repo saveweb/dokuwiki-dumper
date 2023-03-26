@@ -7,7 +7,7 @@ import threading
 from bs4 import BeautifulSoup
 from requests import Session
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, DispositionHeaderMissingError
+from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError
 
 
 from .revisions import getRevisions, getSourceEdit, getSourceExport
@@ -71,6 +71,8 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         except Exception as e:
             if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
                 print('[',args[2]+1,'] action disabled: edit. ignored')
+            if isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
+                print('[',args[2]+1,'] action edit: textarea not found. ignored')
             elif not ignore_errors:
                 global sub_thread_error
                 sub_thread_error = e

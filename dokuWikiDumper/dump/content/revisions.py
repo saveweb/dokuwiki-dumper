@@ -5,7 +5,7 @@ import urllib.parse as urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, DispositionHeaderMissingError, HTTPStatusError
+from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError, HTTPStatusError
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 
@@ -26,11 +26,17 @@ def getSourceEdit(url, title, rev='', session: requests.Session = None):
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
     soup = BeautifulSoup(r.text, 'lxml')
+    source = None
     try:
-        return ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
+        source = ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
     except AttributeError as e:
         if 'Action disabled: source' in r.text:
             raise ActionEditDisabled(title)
+    
+    if not source:
+        raise ActionEditTextareaNotFound(title)
+
+    return source
 
 
 def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, session: requests.Session = None, msg_header: str = ''):

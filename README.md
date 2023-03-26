@@ -77,8 +77,8 @@ options:
   --insecure            Disable SSL certificate verification
   --ignore-errors       !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
   --ignore-action-disabled-edit
-                        Some sites disable edit action for anonymous users and some core pages.This option will ignore this error.
-                        But you may only get a partial dump. (only works with --content)
+                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not found error.But
+                        you may only get a partial dump. (only works with --content)
   --username USERNAME   login: username
   --password PASSWORD   login: password
   --cookies COOKIES     cookies file

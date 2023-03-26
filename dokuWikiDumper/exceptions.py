@@ -28,6 +28,14 @@ class ActionEditDisabled(Exception):
 
     def __str__(self):
         return "Action: edit is disabled for [[%s]]" % self.title
+    
+
+class ActionEditTextareaNotFound(Exception):
+    def __init__(self, title):
+        self.title = title
+
+    def __str__(self):
+        return "Action: edit: textarea not found for [[%s]]" % self.title
 
 class ActionExportHtmlDisabled(Exception):
     def __init__(self, title):
