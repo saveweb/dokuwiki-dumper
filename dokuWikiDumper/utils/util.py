@@ -13,6 +13,16 @@ fileLock = threading.Lock()
 printLock = threading.Lock()
 
 
+def check_int(s: str = ''):
+    """ Check if a string is an integer
+    :return: None if not an integer, otherwise the raw string
+    """
+    try:
+        int(s)
+        return s
+    except ValueError:
+        return None
+
 def print_with_lock(*args, **kwargs):
     printLock.acquire()
     builtins.print(*args, **kwargs)

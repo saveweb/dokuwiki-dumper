@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError, HTTPStatusError
-from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.util import check_int, print_with_lock as print
 
 
 def getSourceExport(url, title, rev='', session: requests.Session = None):
@@ -99,12 +99,18 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
 
         for li in lis:
             rev = {}
+
+            checkbox = li.find('input', {'type': 'checkbox'})
             rev_hrefs = li.findAll(
                 'a', href=lambda href: href and (
                     '&rev=' in href or '?rev=' in href))
 
             # id: optional(str(id)): rev_id, not title name.
-            if rev_hrefs:
+            if checkbox and rev.get('id', None) is None:
+                rev['id'] = checkbox.get('value', None)
+                rev['id'] = check_int(rev['id'])
+
+            if rev_hrefs and rev.get('id', None) is None:
                 obj1 = rev_hrefs[0]['href']
                 obj2 = urlparse.urlparse(obj1).query
                 obj3 = urlparse.parse_qs(obj2)
@@ -113,12 +119,14 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
                 else:
                     rev['id'] = None
                 del (obj1, obj2, obj3)
+                rev['id'] = check_int(rev['id'])
 
-            if use_hidden_rev and 'id' in rev and rev['id'] is None:
+            if use_hidden_rev and rev.get('id', None) is None:
                 obj1 = li.find('input', {'type': 'hidden'})
                 if obj1 is not None and 'value' in obj1:
                     rev['id'] = obj1['value']
                 del (obj1)
+                rev['id'] = check_int(rev['id'])
 
             # minor: bool
             rev['minor'] = li.has_attr('class') and 'minor' in li['class']
