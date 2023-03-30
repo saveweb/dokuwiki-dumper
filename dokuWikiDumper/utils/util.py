@@ -20,7 +20,7 @@ def check_int(s: str = ''):
     try:
         int(s)
         return s
-    except ValueError:
+    except:
         return None
 
 def print_with_lock(*args, **kwargs):

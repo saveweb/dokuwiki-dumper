@@ -116,17 +116,17 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
                 obj3 = urlparse.parse_qs(obj2)
                 if 'rev' in obj3:
                     rev['id'] = obj3['rev'][0]
+                    rev['id'] = check_int(rev['id'])
                 else:
                     rev['id'] = None
                 del (obj1, obj2, obj3)
-                rev['id'] = check_int(rev['id'])
 
             if use_hidden_rev and rev.get('id', None) is None:
                 obj1 = li.find('input', {'type': 'hidden'})
                 if obj1 is not None and 'value' in obj1:
                     rev['id'] = obj1['value']
+                    rev['id'] = check_int(rev['id'])
                 del (obj1)
-                rev['id'] = check_int(rev['id'])
 
             # minor: bool
             rev['minor'] = li.has_attr('class') and 'minor' in li['class']
