@@ -159,11 +159,13 @@ def dump_page(dumpDir: str,
 
                 print(
                     msg_header, '    One revision of [[%s]] missing rev_id. Using date to rebuild...' % title, end=' ')
-                date_formats = ["%Y-%m-%d %H:%M", "%Y/%m/%d %H:%M", "%d.%m.%Y %H:%M"]
+                date_formats = ["%Y-%m-%d %H:%M", "%Y/%m/%d %H:%M", "%d.%m.%Y %H:%M", "%d/%m/%Y %H:%M"]
                 # Try each date format until one works.
                 # Example below:
                 # %Y-%m-%d %H:%M | <https://www.dokuwiki.org/dokuwiki?do=revisions> # 2019/01/01 00:00
-                #  
+                # TODO: %Y-%m-%d %H:%M
+                # TODO: %Y/%m/%d %H:%M
+                # %d/%m/%Y %H:%M | <https://eolienne.f4jr.org/?do=revisions> #  28/02/2013 12:12
                 for date_format in date_formats:
                     try:
                         date = datetime.strptime(rev['date'], date_format)
