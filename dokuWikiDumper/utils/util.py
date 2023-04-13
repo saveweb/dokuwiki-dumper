@@ -6,8 +6,10 @@ import threading
 import time
 from typing import *
 from urllib.parse import urlparse
-
+from rich import print as rprint
 import requests
+
+USE_RICH = True
 
 fileLock = threading.Lock()
 printLock = threading.Lock()
@@ -25,7 +27,13 @@ def check_int(s: str = ''):
 
 def print_with_lock(*args, **kwargs):
     printLock.acquire()
-    builtins.print(*args, **kwargs)
+    if USE_RICH:
+        # replace [[ and ]] with "
+        args = [re.sub(r'\[\[', '\"', str(arg)) for arg in args]
+        args = [re.sub(r'\]\]', '\"', str(arg)) for arg in args]
+        rprint(*args, **kwargs)
+    else:
+        builtins.print(*args, **kwargs)
     printLock.release()
 
 

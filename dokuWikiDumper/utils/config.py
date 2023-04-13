@@ -1,7 +1,7 @@
 import datetime
 import json
 import os
-
+from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.util import uopen
 
 CONFIG_FILEPATH = 'dumpMeta/config.json'

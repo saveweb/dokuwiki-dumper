@@ -77,8 +77,7 @@ def upload(args={}):
         raise e
     
     identifier_remote = 'wiki-' + identifier_local # 'wiki-' is the prefix of all wikis in archive.org
-    # currently(>=0.0.4), just add 'wiki-' as the prefix of the remote identifier
-    # but still use the local identifier as the filename prefix of the remote files
+    # with the prefix, wikidump can go into wikiteam collection.
 
     # identifier_remote = 'test-wiki-' + identifier_local # 
 

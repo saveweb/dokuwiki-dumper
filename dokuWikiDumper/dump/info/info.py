@@ -6,7 +6,9 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 import requests
+from rich import print
 
+from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.util import uopen
 
 INFO_FILEPATH = 'dumpMeta/info.json'

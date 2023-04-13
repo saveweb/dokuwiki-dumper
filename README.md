@@ -12,6 +12,7 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 - beautifulsoup4
 - requests
 - lxml
+- rich
 
 ### dokuWikiUploader
 
@@ -127,6 +128,8 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --
 
 I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.
 
+> Some wikidump has been uploaded to IA, you can check out the list: <https://archive.org/search?query=subject%3A"dokuWikiDumper">
+> 
 > If you dumped a DokuWiki and want to share it, please feel free to open an issue, I will add it to the list.
 
 ## How to import dump to DokuWiki
