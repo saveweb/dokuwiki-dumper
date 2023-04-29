@@ -31,6 +31,7 @@ from dokuWikiDumper.utils.delay import DelaySession
 from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
 
+DEFAULT_THREADS = -1 # magic number, -1 means use 1 thread.
 
 def getArgumentParser():
     parser = argparse.ArgumentParser(description='dokuWikiDumper Version: '+ DUMPER_VERSION)
@@ -54,7 +55,8 @@ def getArgumentParser():
     parser.add_argument(
         '--no-resume', help='Do not resume a previous dump [default: resume]', action='store_true')
     parser.add_argument(
-        '--threads', help='Number of sub threads to use [default: 1], not recommended to set > 5', type=int, default=1)
+        '--threads', help='Number of sub threads to use [default: 1], not recommended to set > 5', type=int, default=DEFAULT_THREADS)
+
     parser.add_argument('--insecure', action='store_true',
                         help='Disable SSL certificate verification')
     parser.add_argument('--ignore-errors', action='store_true',
@@ -73,7 +75,7 @@ def getArgumentParser():
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     parser.add_argument('--cookies', help='cookies file')
     parser.add_argument('--auto', action='store_true', 
-                        help='dump: content+media+html, threads=5, ignore-action-disable-edit')
+                        help='dump: content+media+html, threads=5, ignore-action-disable-edit. (threads is overridable)')
 
     return parser
 
@@ -123,15 +125,21 @@ def checkArgs(args):
 def getParameters():
     parser = getArgumentParser()
     args = parser.parse_args()
+
     if args.auto:
         args.content = True
         args.media = True
         args.html = True
-        args.threads = 5
+        args.threads = args.threads if args.threads >= 1 else 5
         args.ignore_action_disabled_edit = True
+    else:
+        # reset magic number
+        args.threads = args.threads if args.threads >= 1 else 1
+    print('Threads:', args.threads)
     if not checkArgs(args):
         parser.print_help()
-        exit(1)
+        sys.exit(1)
+
     return args
 
 
