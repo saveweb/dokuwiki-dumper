@@ -14,8 +14,10 @@ from dokuWikiDumper.utils.config import get_config
 
 from .__version__ import UPLOADER_VERSION
 
-collection = 'opensource'
-# collection = 'test_collection'
+DEFAULT_COLLECTION = 'opensource'
+TEST_COLLECTION = 'test_collection' # items here are expected to be automatically removed after 30 days. 
+# (see <https://archive.org/details/test_collection?tab=about>)
+
 USER_AGENT = 'dokuWikiUploader/' + UPLOADER_VERSION
 
 UPLOADED_MARK = 'uploaded_to_IA.mark'
@@ -98,7 +100,7 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
     # Item metadata
     md = {
         "mediatype": "web",
-        "collection": collection,
+        "collection": args.collection,
         "title": "Wiki - " + title,
         "description": description,
         "last-updated-date": time.strftime("%Y-%m-%d"),
@@ -148,6 +150,13 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
             queue_derive=False,
         )
 
+        tries = 20
+        while not item.exists and tries > 0:
+            print("Waiting for item to be created...", tries)
+            tries -= 1
+            time.sleep(10)
+            item = get_item(identifier_remote)
+
         item.modify_metadata(md)  # update
         print(
             "You can find it in https://archive.org/details/%s"
@@ -181,9 +190,13 @@ def main(params=[]):
     )
     parser.description = "Upload a DokuWiki dump to Internet Archive." + f" (Version: {UPLOADER_VERSION})."
     parser.add_argument("-kf", "--keysfile", default="~/.doku_uploader_ia_keys",
-                        help="Path to the IA S3 keys file. (first line: access key, second line: secret key) [default: ~/.doku_uploader_ia_keys]")
+                        help="Path to the IA S3 keys file. (first line: access key, second line: secret key)"
+                             " [default: ~/.doku_uploader_ia_keys]")
     parser.add_argument("-p7z", "--path7z", default="7z",
                         help="Path to 7z binary. [default: 7z]")
+    parser.add_argument("-c", "--collection", default=DEFAULT_COLLECTION, choices=[DEFAULT_COLLECTION, TEST_COLLECTION, "wikiteam"],
+                        help="Collection to upload to. ('test_collection' for testing (auto-delete after 30 days) "
+                             "[default: opensource]")
     parser.add_argument("dump_dir", help="Path to the wiki dump directory.")
     args = parser.parse_args()
 

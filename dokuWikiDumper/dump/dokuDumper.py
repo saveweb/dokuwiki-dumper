@@ -32,13 +32,17 @@ from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkd
 
 def getArgumentParser():
     parser = argparse.ArgumentParser(description='dokuWikiDumper Version: '+ DUMPER_VERSION)
-    parser.add_argument('url', help='URL of the dokuWiki', type=str)
-    parser.add_argument('--content', action='store_true', help='Dump content')
-    parser.add_argument('--media', action='store_true', help='Dump media')
-    parser.add_argument('--html', action='store_true', help='Dump HTML')
-    parser.add_argument('--pdf', action='store_true',
+    parser.add_argument('url', help='URL of the dokuWiki (provide the doku.php URL)', type=str)
+
+    group_download = parser.add_argument_group("Data to download", "What info download from the wiki")
+
+    group_download.add_argument('--content', action='store_true', help='Dump content')
+    group_download.add_argument('--media', action='store_true', help='Dump media')
+    group_download.add_argument('--html', action='store_true', help='Dump HTML')
+    group_download.add_argument('--pdf', action='store_true',
                         help='Dump PDF [default: false] (Only available on some wikis with the PDF export plugin)'+
                         ' (Only dumps the latest PDF revision)')
+
     parser.add_argument('--current-only', dest='current_only', action='store_true',
                         help='Dump latest revision, no history [default: false] (only for HTML at the moment)')
     parser.add_argument(
