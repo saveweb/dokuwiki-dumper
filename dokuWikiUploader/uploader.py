@@ -116,6 +116,11 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
         })
 
     dirs_to_7z = ["attic","html","media","pages", "pdf"]
+    mark_files = {"attic":  "content_dumped.mark", 
+                "pages":    "content_dumped.mark",
+                "html":     "html_dumped.mark",
+                "media":    "media_dumped.mark",
+                "pdf":      "pdf_dumped.mark",}
     filedict = {} # "remote filename": "local filename"
 
     # list all files in dump_dir/dumpMeta
@@ -125,6 +130,10 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
     for dir in dirs_to_7z:
         _dir = os.path.join(dump_dir, dir)
         if os.path.isdir(_dir):
+
+            if not os.path.isfile(os.path.join(dump_dir, mark_files[dir])):
+                raise Exception(f"Directory {dir} is not finished. Please run dokuWikiDumper again. ({mark_files[dir]} not found)")
+
             print(f"Compressing {_dir}...")
             level = 1 if (dir == "media" or dir == "pdf") else 5
             filedict.update({identifier_local+"-"+dir+".7z": compress(_dir, path7z, level=level)})
