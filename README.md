@@ -20,7 +20,7 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 > `dokuWikiUploader -h` for help.
 
 - internetarchive
-- 7z (`7z` command)
+- p7zip (`7z` command) (`p7zip-full` package)
 
 ## Install `dokuWikiDumper`
 
