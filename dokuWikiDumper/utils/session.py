@@ -12,7 +12,7 @@ from dokuWikiDumper.__version__ import DUMPER_VERSION
 from dokuWikiDumper.utils.util import uopen
 
 
-def createSession():
+def createSession(retries=5):
     session = requests.Session()
     try:
         from requests.adapters import HTTPAdapter
@@ -57,7 +57,7 @@ def createSession():
                 time.sleep(backoff)
 
         __retries__ = CustomRetry(
-            total=5, backoff_factor=1.5,
+            total=retries, backoff_factor=1.5,
             status_forcelist=[500, 502, 503, 504, 429],
             allowed_methods=['DELETE', 'PUT', 'GET',
                              'OPTIONS', 'TRACE', 'HEAD', 'POST']

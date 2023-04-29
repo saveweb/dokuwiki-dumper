@@ -63,6 +63,8 @@ def getArgumentParser():
                         'But you may only get a partial dump. '+
                         '(only works with --content)', dest='ignore_action_disabled_edit')
 
+    parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)
+
     parser.add_argument('--username', help='login: username')
     parser.add_argument('--password', help='login: password')
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
@@ -101,7 +103,9 @@ def checkArgs(args):
     if  args.ignore_action_disabled_edit and not args.content:
         print('Warning: You have specified --ignore-action-disabled-edit, but you have not specified --content.')
         return False
-
+    if args.retry < 0:
+        print('Retry must be >= 0.')
+        return False
     return True
 
 
@@ -125,7 +129,7 @@ def dump():
     url_input = args.url
     skip_to = args.skip_to
 
-    session = createSession()
+    session = createSession(retries=args.retry)
     if args.insecure:
         session.verify = False
         requests.packages.urllib3.disable_warnings()
