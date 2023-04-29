@@ -134,7 +134,7 @@ def dump():
     std_url = standardizeUrl(url_input)
     doku_url = getDokuUrl(std_url, session=session)
 
-    avoidSites(doku_url)
+    avoidSites(doku_url, session=session)
 
     print('Init cookies:', session.cookies.get_dict())
     if args.username:

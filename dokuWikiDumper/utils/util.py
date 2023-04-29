@@ -37,9 +37,9 @@ def print_with_lock(*args, **kwargs):
     printLock.release()
 
 
-def avoidSites(url: str = ''):
+def avoidSites(url: str, session: requests.Session):
     #check robots.txt
-    r = requests.get(urlparse(url).scheme + '://' + urlparse(url).netloc + '/robots.txt')
+    r = session.get(urlparse(url).scheme + '://' + urlparse(url).netloc + '/robots.txt')
     if r.status_code == 200:
         if 'User-agent: ia_archiver\nDisallow: /' in r.text or f'User-agent: dokuWikiDumper\nDisallow: /' in r.text:
             print('This wiki not allow dokuWikiDumper or IA to crawl.')
