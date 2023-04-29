@@ -13,6 +13,7 @@
 
 import argparse
 import os
+import sys
 import time
 
 import requests
@@ -26,6 +27,7 @@ from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
 from dokuWikiDumper.dump.pdf import dump_PDF
 from dokuWikiDumper.utils.config import update_config
+from dokuWikiDumper.utils.delay import DelaySession
 from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
 
@@ -63,6 +65,7 @@ def getArgumentParser():
                         'But you may only get a partial dump. '+
                         '(only works with --content)', dest='ignore_action_disabled_edit')
 
+    parser.add_argument('--delay', help='Delay between requests [default: 0.0]', type=float, default=0.0)
     parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)
 
     parser.add_argument('--username', help='login: username')
@@ -100,9 +103,17 @@ def checkArgs(args):
     if args.username and not args.password:
         print('Warning: You have specified a username but no password.')
         return False
-    if  args.ignore_action_disabled_edit and not args.content:
+    if args.ignore_action_disabled_edit and not args.content:
         print('Warning: You have specified --ignore-action-disabled-edit, but you have not specified --content.')
         return False
+    if args.delay < 0:
+        print('Delay must be >= 0.')
+        return False
+    if args.delay > 0.0 and args.threads > 1:
+        print(f"Warning: You have specified a delay and more than one thread ({args.threads}).")
+        print("!!! Delay will be applied to each thread separately !!!")
+        time.sleep(3)
+        input('Press Enter to continue...')
     if args.retry < 0:
         print('Retry must be >= 0.')
         return False
@@ -134,6 +145,10 @@ def dump():
         session.verify = False
         requests.packages.urllib3.disable_warnings()
         print("Warning: SSL certificate verification disabled.")
+    
+    if args.delay > 0.0:
+        delay_session = DelaySession(session=session, delay=args.delay, msg='')
+        delay_session.hijack()
 
     std_url = standardizeUrl(url_input)
     doku_url = getDokuUrl(std_url, session=session)
