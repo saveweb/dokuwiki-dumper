@@ -85,11 +85,16 @@ def upload(args={}):
 
     # identifier_remote = 'test-wiki-' + identifier_local # 
 
-    description = \
-f'''DokuWiki: [{title}].
-
-Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">DokuWiki-Dumper</a> v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.
-'''
+    description_with_URL = \
+f'''DokuWiki: <a href="{info.get(INFO_DOKU_URL)}" rel="nofollow">{title}</a>
+<br>
+<br>
+Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">DokuWiki-Dumper</a> v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.'''
+    description_without_URL = \
+f'''DokuWiki: {title}
+<br>
+<br>
+Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.'''
     keywords = [
                     "wiki",
                     "wikiteam",
@@ -104,7 +109,7 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
         "mediatype": "web",
         "collection": collection,
         "title": "Wiki - " + title,
-        "description": description,
+        "description": description_without_URL, # without URL, to bypass IA's anti-spam.
         "last-updated-date": time.strftime("%Y-%m-%d"),
         "subject": "; ".join(
             keywords
@@ -165,6 +170,8 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
             verbose=True,
             queue_derive=False,
         )
+        print(f"Uploading {len(filedict)} files: Done.\n")
+
 
         tries = 20
         while not item.exists and tries > 0:
@@ -173,9 +180,31 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
             time.sleep(10)
             item = get_item(identifier_remote)
 
-        item.modify_metadata(md)  # update
+
+
+        print("Updating description...")
+        new_md  = {}
+        if (info.get(INFO_DOKU_URL) not in item.metadata.get("description") or
+            'https://github.com/saveweb/dokuwiki-dumper' not in item.metadata.get("description")):
+            # IA will format the description's HTML, so we can't just use `==` to compare.
+            print("    (add URL back)...")
+            new_md.update({"description": description_with_URL})
+        if item.metadata.get("last-updated-date") != time.strftime("%Y-%m-%d"):
+            print("    (update last-updated-date)...")
+            new_md.update({"last-updated-date": time.strftime("%Y-%m-%d")})
+
+        if new_md:
+            r = item.modify_metadata(metadata=new_md,  # update
+                                    access_key=access_key, secret_key=secret_key)
+            print(r.text)
+            r.raise_for_status()
+            print("Updating description: Done.")
+        else:
+            print("Updating description: No need to update.")
+
+
         print(
-            "You can find it in https://archive.org/details/%s"
+            "\n\n--Done--\nYou can find it in https://archive.org/details/%s"
             % (identifier_remote)
         )
     except Exception as e:
@@ -216,7 +245,7 @@ def main(params=[]):
     parser.add_argument("-p", "--pack-dumpMeta", action="store_true",
                         help="Pack the dumpMeta/ directory into a 7z file, then upload it. "
                              "instead of uploading all files in dumpMeta/ directory individually. "
-                             "(may be useful for bypassing IA's anti-spam check) [default: False]")
+                             "[default: False]")
     parser.add_argument("dump_dir", help="Path to the wiki dump directory.")
     args = parser.parse_args()
 
