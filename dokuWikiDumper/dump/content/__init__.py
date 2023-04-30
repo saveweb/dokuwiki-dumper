@@ -19,7 +19,9 @@ from dokuWikiDumper.utils.util import print_with_lock as print
 sub_thread_error = None
 
 
-def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0, threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False):
+def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0,
+                threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False,
+                current_only: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
 
@@ -90,7 +92,8 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
                                                      doku_url,
                                                      session,
                                                      use_hidden_rev,
-                                                     select_revs
+                                                     select_revs,
+                                                     current_only,
                                                      ))
         print('Content: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
         t.daemon = True
@@ -109,7 +112,8 @@ def dump_page(dumpDir: str,
               doku_url: str,
               session: Session,
               use_hidden_rev,
-              select_revs):
+              select_revs,
+              current_only: bool):
     srouce = getSource(doku_url, title, session=session)
     msg_header = '['+str(index_of_title + 1)+']: '
     child_path = title.replace(':', '/')
@@ -119,6 +123,11 @@ def dump_page(dumpDir: str,
     smkdirs(dumpDir, '/pages/' + child_path)
     with uopen(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
         f.write(srouce)
+
+    if current_only:
+        print(msg_header, '    [[%s]] saved.' % (title))
+        return
+
     revs = getRevisions(doku_url, title, use_hidden_rev,
                         select_revs, session=session, msg_header=msg_header)
 

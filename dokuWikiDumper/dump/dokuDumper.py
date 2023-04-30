@@ -47,7 +47,7 @@ def getArgumentParser():
                         ' (Only dumps the latest PDF revision)')
 
     parser.add_argument('--current-only', dest='current_only', action='store_true',
-                        help='Dump latest revision, no history [default: false] (only for HTML at the moment)')
+                        help='Dump latest revision, no history [default: false]')
     parser.add_argument(
         '--skip-to', help='!DEV! Skip to title number [default: 0]', type=int, default=0)
     parser.add_argument(
@@ -201,7 +201,8 @@ def dump():
             dumpContent(doku_url=doku_url, dumpDir=dumpDir,
                         session=session, skipTo=skip_to, threads=args.threads,
                         ignore_errors=args.ignore_errors,
-                        ignore_action_disabled_edit=args.ignore_action_disabled_edit)
+                        ignore_action_disabled_edit=args.ignore_action_disabled_edit,
+                        current_only=args.current_only)
             with open(os.path.join(dumpDir, 'content_dumped.mark'), 'w') as f:
                 f.write('done')
     if args.html:
