@@ -18,7 +18,7 @@ import time
 
 import requests
 # import gzip, 7z
-from rich import print
+from dokuWikiDumper.utils.util import print_with_lock as print
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION
 from dokuWikiDumper.dump.content import dumpContent

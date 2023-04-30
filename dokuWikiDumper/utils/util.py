@@ -29,9 +29,13 @@ def print_with_lock(*args, **kwargs):
     printLock.acquire()
     if USE_RICH:
         # replace [[ and ]] with "
-        args = [re.sub(r'\[\[', '\"', str(arg)) for arg in args]
-        args = [re.sub(r'\]\]', '\"', str(arg)) for arg in args]
-        rprint(*args, **kwargs)
+        try:
+            rich_args = args
+            rich_args = [re.sub(r'\[\[', '\"', str(arg)) for arg in rich_args]
+            rich_args = [re.sub(r'\]\]', '\"', str(arg)) for arg in rich_args]
+            rprint(*rich_args, **kwargs)
+        except: # fallback to builtins.print
+            builtins.print(*args, **kwargs)
     else:
         builtins.print(*args, **kwargs)
     printLock.release()
