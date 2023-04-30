@@ -55,6 +55,8 @@ def upload(args={}):
     dump_dir = args.dump_dir
     path7z = args.path7z # '/usr/bin/7z'
     access_key, secret_key = read_ia_keys(os.path.expanduser(args.keysfile))
+    collection = args.collection
+    pack_dumpMeta_dir = args.pack_dumpMeta
     info = get_info(dump_dir)
     config = get_config(dump_dir)
     headers = {"User-Agent": USER_AGENT}
@@ -100,7 +102,7 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
     # Item metadata
     md = {
         "mediatype": "web",
-        "collection": args.collection,
+        "collection": collection,
         "title": "Wiki - " + title,
         "description": description,
         "last-updated-date": time.strftime("%Y-%m-%d"),
@@ -120,18 +122,23 @@ Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">
                 "pages":    "content_dumped.mark",
                 "html":     "html_dumped.mark",
                 "media":    "media_dumped.mark",
-                "pdf":      "pdf_dumped.mark",}
+                "pdf":      "pdf_dumped.mark",
+                "dumpMeta": "dumpMeta/" # no .mark file for dumpMeta, check itself instead.
+                }
     filedict = {} # "remote filename": "local filename"
 
-    # list all files in dump_dir/dumpMeta
-    for dir in os.listdir(os.path.join(dump_dir, "dumpMeta/")):
-        filedict.update({identifier_local+"-"+"dumpMeta/"+os.path.basename(dir): os.path.join(dump_dir, "dumpMeta/", dir)})
+    if pack_dumpMeta_dir:
+        dirs_to_7z.append("dumpMeta")
+    else:
+        # list all files in dump_dir/dumpMeta
+        for dir in os.listdir(os.path.join(dump_dir, "dumpMeta/")):
+            filedict.update({identifier_local+"-"+"dumpMeta/"+os.path.basename(dir): os.path.join(dump_dir, "dumpMeta/", dir)})
 
     for dir in dirs_to_7z:
         _dir = os.path.join(dump_dir, dir)
         if os.path.isdir(_dir):
 
-            if not os.path.isfile(os.path.join(dump_dir, mark_files[dir])):
+            if not os.path.exists(os.path.join(dump_dir, mark_files[dir])):
                 raise Exception(f"Directory {dir} is not finished. Please run dokuWikiDumper again. ({mark_files[dir]} not found)")
 
             print(f"Compressing {_dir}...")
@@ -206,6 +213,10 @@ def main(params=[]):
     parser.add_argument("-c", "--collection", default=DEFAULT_COLLECTION, choices=[DEFAULT_COLLECTION, TEST_COLLECTION, "wikiteam"],
                         help="Collection to upload to. ('test_collection' for testing (auto-delete after 30 days) "
                              "[default: opensource]")
+    parser.add_argument("-p", "--pack-dumpMeta", action="store_true",
+                        help="Pack the dumpMeta/ directory into a 7z file, then upload it. "
+                             "instead of uploading all files in dumpMeta/ directory individually. "
+                             "(may be useful for bypassing IA's anti-spam check) [default: False]")
     parser.add_argument("dump_dir", help="Path to the wiki dump directory.")
     args = parser.parse_args()
 
