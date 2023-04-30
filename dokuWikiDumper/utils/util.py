@@ -126,6 +126,8 @@ def url2prefix(url):
     prefix = prefix.strip('/')
     prefix = re.sub(r"/", "_", prefix)
 
+    prefix = prefix.replace(':', '_') # port
+
     # domain = re.sub(r"\.", "", domain)
     # domain = re.sub(r"[^A-Za-z0-9]", "_", domain)
 
