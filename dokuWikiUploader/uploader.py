@@ -95,32 +95,37 @@ f'''DokuWiki: {title}
 <br>
 <br>
 Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.'''
-    keywords = [
-                    "wiki",
-                    "wikiteam",
-                    "DokuWiki",
-                    "dokuWikiDumper",
-                    "wikidump",
-                    title,
-                    url2prefix(info.get(INFO_DOKU_URL)),
-                ]
+    keywords_init = [
+        "wiki",
+        "wikiteam",
+        "DokuWiki",
+        "dokuWikiDumper",
+        "wikidump",
+    ]
+    keywords_full = keywords_init.copy()
+    if title and title not in keywords_full:
+        keywords_full.append(title)
+    if info.get(INFO_DOKU_URL):
+        keywords_full.append(url2prefix(info.get(INFO_DOKU_URL)))
+
+
     # Item metadata
-    md = {
+    md_init = {
         "mediatype": "web",
         "collection": collection,
         "title": "Wiki - " + title,
         "description": description_without_URL, # without URL, to bypass IA's anti-spam.
         "last-updated-date": time.strftime("%Y-%m-%d"),
         "subject": "; ".join(
-            keywords
+            keywords_init
         ),  # Keywords should be separated by ; but it doesn't matter much; the alternative is to set one per field with subject[0], subject[1], ...
-        "originalurl": info.get(INFO_DOKU_URL),
     }
     language = info.get(INFO_LANG) if info.get(INFO_LANG) else config.get('lang')
     if language:
-        md.update({
+        md_init.update({
             "language": language,
         })
+
 
     dirs_to_7z = ["attic","html","media","pages", "pdf"]
     mark_files = {"attic":  "content_dumped.mark", 
@@ -161,10 +166,10 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
                 filedict.pop(file_in_item["name"])
                 print(f"File {file_in_item['name']} already exists in {identifier_remote}.")
         print(f"Uploading {len(filedict)} files...")
-        print(md)
+        print(md_init)
         r = item.upload(
             files=filedict,
-            metadata=md,
+            metadata=md_init,
             access_key=access_key,
             secret_key=secret_key,
             verbose=True,
@@ -192,6 +197,12 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         if item.metadata.get("last-updated-date") != time.strftime("%Y-%m-%d"):
             print("    (update last-updated-date)...")
             new_md.update({"last-updated-date": time.strftime("%Y-%m-%d")})
+        if item.metadata.get("subject") != "; ".join(keywords_full):
+            print("    (update subject)...")
+            new_md.update({"subject": "; ".join(keywords_full)})
+        if item.metadata.get("originalurl") != info.get(INFO_DOKU_URL):
+            print("    (update originalurl)...")
+            new_md.update({"originalurl": info.get(INFO_DOKU_URL)})
 
         if new_md:
             r = item.modify_metadata(metadata=new_md,  # update
