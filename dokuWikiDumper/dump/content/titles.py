@@ -53,7 +53,16 @@ def getTitlesOld(url, ns=None, ancient=False, session=None):
     depth = len(ns.split(':'))
 
     r = session.get(url, params=params)
-    soup = BeautifulSoup(r.text, os.environ.get('htmlparser')).findAll('ul', {'class': 'idx'})[0]
+    soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
+
+    if len(soup.findAll('ul', {'class': 'idx'}))==0:
+        title = soup.find('title').text.strip()
+        if "\[" in title:
+            import re
+            title = re.sub("\[.*\]","", title).strip()
+        return title
+
+    soup = soup.findAll('ul', {'class': 'idx'})[0]
     attr = 'text' if ancient else 'title'
 
     if ns:
