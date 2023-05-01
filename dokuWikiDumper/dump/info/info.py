@@ -82,8 +82,13 @@ def get_icon(html: str):
 def save_icon(dumpDir: str, url: str, session: requests.Session):
     if url is None:
         return False
+    r = session.get(url)
+    if 'image' not in r.headers.get('content-type', ''):
+        print('Warning: Icon is not an image.')
+        return False
+
     with open(os.path.join(dumpDir, ICON_FILEPATH), 'wb') as f:
-        f.write(session.get(url).content)
+        f.write(r.content)
         return True
 
 
