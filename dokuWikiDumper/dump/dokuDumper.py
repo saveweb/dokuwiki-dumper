@@ -220,7 +220,7 @@ def dump():
             print('Media already dumped.')
         else:
             print('\nDumping media...\n')
-            dumpMedia(url=base_url, dumpDir=dumpDir,
+            dumpMedia(base_url=base_url, dumpDir=dumpDir,
                     session=session, threads=args.threads,
                     ignore_errors=args.ignore_errors)
             with open(os.path.join(dumpDir, 'media_dumped.mark'), 'w') as f:

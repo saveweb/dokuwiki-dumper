@@ -64,7 +64,7 @@ def getFiles(url, ns: str = '',  dumpDir: str = '', session=None):
     return files
 
 
-def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1, ignore_errors: bool = False):
+def dumpMedia(base_url: str = '', dumpDir: str = '', session=None, threads: int = 1, ignore_errors: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
 
@@ -72,9 +72,9 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1, 
     # smkdirs(dumpDir + '/media_attic')
     # smkdirs(dumpDir + '/media_meta')
 
-    fetch = urlparse.urljoin(url, 'lib/exe/fetch.php')
+    fetch = urlparse.urljoin(base_url, 'lib/exe/fetch.php')
 
-    files = getFiles(url, dumpDir=dumpDir, session=session)
+    files = getFiles(base_url, dumpDir=dumpDir, session=session)
     def try_download(*args, **kwargs):
         try:
             download(*args, **kwargs)
@@ -102,7 +102,9 @@ def dumpMedia(url: str = '', dumpDir: str = '', session=None, threads: int = 1, 
             local_size = -1
             if os.path.exists(file):
                 local_size = os.path.getsize(file)
-            with session.get(fetch, params={'media': title}, stream=True) as r:
+            with session.get(fetch, params={'media': title},
+                            stream=True, headers={'Referer': base_url}
+                            ) as r:
                 r.raise_for_status()
 
                 if local_size == -1:  # file does not exist
