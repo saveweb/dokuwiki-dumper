@@ -5,7 +5,7 @@ import sys
 import threading
 import time
 from typing import *
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from rich import print as rprint
 import requests
 
@@ -92,7 +92,12 @@ def standardizeUrl(url: str = ''):
 
 def getDokuUrl(url: str = '', session=requests.Session):
     r = session.get(url)
-    dokuUrl = r.url
+    parsedUrl = urlparse(r.url)
+    dokuUrl = urljoin(
+        parsedUrl.scheme + '://' + parsedUrl.netloc + '/',
+        parsedUrl.path
+    ) # remove query string
+
 
     return dokuUrl
 
