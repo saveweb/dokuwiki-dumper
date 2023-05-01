@@ -43,7 +43,7 @@ def update_info_json(dumpDir: str, info: dict):
 def get_html_lang(html: str) -> Optional[str]:
     '''Returns the language of the html document.'''
 
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, os.environ.get('htmlparser'))
     # <html lang="en" dir="ltr" class="no-js">
     lang = soup.html.get('lang')
 
@@ -55,7 +55,7 @@ def get_wiki_name(html: str):
 
     Tuple: (wiki_name: Optional[str], raw_title: Optional[str])'''
 
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, os.environ.get('htmlparser'))
     raw_title = soup.head.title.text
     wiki_name = re.search(r'\[(.+)\]', raw_title)  # 'start [wikiname]'.
     if wiki_name:
@@ -69,7 +69,7 @@ def get_wiki_name(html: str):
 def get_icon(html: str):
     '''Returns the icon url.'''
 
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, os.environ.get('htmlparser'))
     icon_url = soup.find('link', rel='shortcut icon')
     if icon_url:
         icon_url = icon_url.get('href')

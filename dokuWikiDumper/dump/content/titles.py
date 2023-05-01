@@ -1,5 +1,4 @@
-
-
+import os
 import urllib.parse as urlparse
 from bs4 import BeautifulSoup
 from dokuWikiDumper.utils.util import print_with_lock as print
@@ -25,7 +24,7 @@ def getTitles(url, ns=None, session=None):
     r = session.post(ajax, params)
     if r.status_code != 200 or "AJAX call 'index' unknown!" in r.text:
         return getTitlesOld(url, ns=None, session=session)
-    soup = BeautifulSoup(r.text, 'lxml')
+    soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
     for a in soup.findAll('a', href=True):
         if a.has_attr('title'):
             title = a['title']
@@ -54,7 +53,7 @@ def getTitlesOld(url, ns=None, ancient=False, session=None):
     depth = len(ns.split(':'))
 
     r = session.get(url, params=params)
-    soup = BeautifulSoup(r.text, 'lxml').findAll('ul', {'class': 'idx'})[0]
+    soup = BeautifulSoup(r.text, os.environ.get('htmlparser')).findAll('ul', {'class': 'idx'})[0]
     attr = 'text' if ancient else 'title'
 
     if ns:

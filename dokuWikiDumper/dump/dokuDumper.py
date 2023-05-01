@@ -75,6 +75,8 @@ def getArgumentParser():
     parser.add_argument('--hard-retry', type=int, default=3, dest='hard_retry',
                         help='Maximum number of retries for hard errors [default: 3]')
 
+    parser.add_argument('--parser', help='HTML parser [default: lxml]', type=str, default='lxml')
+
     parser.add_argument('--username', help='login: username')
     parser.add_argument('--password', help='login: password')
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
@@ -124,6 +126,15 @@ def checkArgs(args):
     if args.retry < 0:
         print('Retry must be >= 0.')
         return False
+    if args.parser:
+        try:
+            from bs4 import BeautifulSoup, FeatureNotFound
+            BeautifulSoup("", args.parser)
+            os.environ['htmlparser']=args.parser
+        except FeatureNotFound:
+            print("Parser %s not found. Please install first following "
+                  "https://www.crummy.com/software/BeautifulSoup/bs4/doc/#installing-a-parser"%(args.parser))
+            return False
     return True
 
 

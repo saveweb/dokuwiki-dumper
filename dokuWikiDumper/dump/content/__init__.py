@@ -1,4 +1,5 @@
 import builtins
+import os
 from datetime import datetime
 import socket
 import time
@@ -46,14 +47,14 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         time.sleep(3)
         getSource = getSourceEdit
 
-    soup = BeautifulSoup(r2.text, 'lxml')
+    soup = BeautifulSoup(r2.text, os.environ.get('htmlparser'))
     hidden_rev = soup.findAll(
         'input', {
             'type': 'hidden', 'name': 'rev', 'value': True})
     use_hidden_rev = hidden_rev and hidden_rev[0]['value']
     # TODO: what the `use_hidden_rev` is for?
 
-    soup = BeautifulSoup(r3.text, 'lxml')
+    soup = BeautifulSoup(r3.text, os.environ.get('htmlparser'))
     select_revs = soup.findAll(
         'select', {
             'class': 'quickselect', 'name': 'rev2[0]'})

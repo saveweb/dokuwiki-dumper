@@ -32,13 +32,13 @@ def getFiles(url, ns: str = '',  dumpDir: str = '', session=None):
             'call': 'medialist',
             'ns': ns,
             'do': 'media'
-        }).text, 'lxml')
+        }).text, os.environ.get('htmlparser'))
     medians = BeautifulSoup(
         session.post(ajax, {
             'call': 'medians',
             'ns': ns,
             'do': 'media'
-        }).text, 'lxml')
+        }).text, os.environ.get('htmlparser'))
     imagelinks = medialist.findAll(
         'a',
         href=lambda x: x and re.findall(
