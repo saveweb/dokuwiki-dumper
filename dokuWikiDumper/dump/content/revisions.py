@@ -214,7 +214,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
 
         # next page
         first = soup.findAll('input', {'name': 'first', 'value': True})
-        continue_index = first and max(map(lambda x: x['value'], first))
+        continue_index = first and max(map(lambda x: int(x['value']), first))
         cont = soup.find('input', {'class': 'button', 'accesskey': 'n'})
         # time.sleep(1.5)
 
