@@ -66,6 +66,9 @@ def getArgumentParser():
                         'This option will ignore this error and textarea not found error.'+
                         'But you may only get a partial dump. '+
                         '(only works with --content)', dest='ignore_action_disabled_edit')
+    parser.add_argument('--ignore-disposition-header-missing', action='store_true',
+                        help='Do not check Disposition header, useful for outdated (<2014) DokuWiki versions '
+                        '[default: False]', dest='ignore_disposition_header_missing')
 
     parser.add_argument('--delay', help='Delay between requests [default: 0.0]', type=float, default=0.0)
     parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)
@@ -202,6 +205,7 @@ def dump():
                         session=session, skipTo=skip_to, threads=args.threads,
                         ignore_errors=args.ignore_errors,
                         ignore_action_disabled_edit=args.ignore_action_disabled_edit,
+                        ignore_disposition_header_missing=args.ignore_disposition_header_missing,
                         current_only=args.current_only)
             with open(os.path.join(dumpDir, 'content_dumped.mark'), 'w') as f:
                 f.write('done')

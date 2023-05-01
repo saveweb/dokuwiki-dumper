@@ -5,23 +5,29 @@ import urllib.parse as urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError, HTTPStatusError
+from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ContentTypeHeaderNotTextPlain, DispositionHeaderMissingError, HTTPStatusError
 from dokuWikiDumper.utils.util import check_int, print_with_lock as print
 
 
-def getSourceExport(url, title, rev='', session: requests.Session = None):
+# args must be same as getSourceEdit(), even if not used
+def getSourceExport(url, title, rev='', session: requests.Session = None, 
+                    ignore_disposition_header_missing: bool=False):
     """Export the raw source of a page (at a given revision)"""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'export_raw'})
     if r.status_code != 200:
         raise HTTPStatusError(r)
-    if 'Content-Disposition' not in r.headers:
+    if ('Content-Disposition' not in r.headers) and (not ignore_disposition_header_missing):
         raise DispositionHeaderMissingError(r)
+    if 'text/plain' not in r.headers.get('content-type'):
+        raise ContentTypeHeaderNotTextPlain(r)
 
     return r.text
 
 
-def getSourceEdit(url, title, rev='', session: requests.Session = None):
+# args must be same as getSourceExport(), even if not used
+def getSourceEdit(url, title, rev='', session: requests.Session = None,
+                  ignore_disposition_header_missing: bool=False):
     """Export the raw source of a page by scraping the edit box content. Yuck."""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})

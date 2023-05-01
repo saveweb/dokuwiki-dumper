@@ -21,7 +21,7 @@ sub_thread_error = None
 
 def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0,
                 threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False,
-                current_only: bool = False):
+                ignore_disposition_header_missing: bool=False, current_only: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
 
@@ -94,6 +94,7 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
                                                      use_hidden_rev,
                                                      select_revs,
                                                      current_only,
+                                                     ignore_disposition_header_missing,
                                                      ))
         print('Content: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
         t.daemon = True
@@ -113,8 +114,10 @@ def dump_page(dumpDir: str,
               session: Session,
               use_hidden_rev,
               select_revs,
-              current_only: bool):
-    srouce = getSource(doku_url, title, session=session)
+              current_only: bool,
+              ignore_disposition_header_missing: bool):
+    srouce = getSource(doku_url, title, session=session,
+                       ignore_disposition_header_missing=ignore_disposition_header_missing)
     msg_header = '['+str(index_of_title + 1)+']: '
     child_path = title.replace(':', '/')
     child_path = child_path.lstrip('/')
@@ -135,7 +138,8 @@ def dump_page(dumpDir: str,
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                txt = getSource(doku_url, title, rev['id'], session=session)
+                txt = getSource(doku_url, title, rev['id'], session=session,
+                                ignore_disposition_header_missing=ignore_disposition_header_missing)
                 smkdirs(dumpDir, '/attic/' + child_path)
                 with uopen(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                     f.write(txt)
