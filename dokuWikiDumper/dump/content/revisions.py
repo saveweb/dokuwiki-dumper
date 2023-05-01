@@ -1,4 +1,5 @@
 import html
+import os
 import re
 import urllib.parse as urlparse
 
@@ -31,7 +32,7 @@ def getSourceEdit(url, title, rev='', session: requests.Session = None,
     """Export the raw source of a page by scraping the edit box content. Yuck."""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
-    soup = BeautifulSoup(r.text, 'lxml')
+    soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
     source = None
     try:
         source = ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
@@ -71,7 +72,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
     # if select_revs:
     if False:  # disabled, it's not stable.
         r = session.get(doku_url, params={'id': title, 'do': 'diff'})
-        soup = BeautifulSoup(r.text, 'lxml')
+        soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
         select = soup.find(
             'select', {
                 'class': 'quickselect', 'name': 'rev2[1]'})
@@ -98,7 +99,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
                 'do': 'revisions',
                 'first': continue_index})
 
-        soup = BeautifulSoup(r.text, 'lxml')
+        soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
 
         try:
             lis = soup.find('form', {'id': 'page__revisions'}).find(
