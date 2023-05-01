@@ -100,8 +100,17 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
 
         soup = BeautifulSoup(r.text, 'lxml')
 
-        lis = soup.find('form', {'id': 'page__revisions'}).find(
-            'ul').findAll('li')
+        try:
+            lis = soup.find('form', {'id': 'page__revisions'}).find(
+                'ul').findAll('li')
+        except AttributeError:
+            # outdate dokuwiki version? try another way.
+            try:
+                lis = soup.find('div', {'class': 'page'}).find(
+                    'ul').findAll('li')
+            except Exception as e:
+                # still fail
+                raise e
 
         for li in lis:
             rev = {}
