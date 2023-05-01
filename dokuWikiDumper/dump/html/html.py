@@ -43,7 +43,7 @@ def dump_HTML(doku_url, dumpDir,
                 global sub_thread_error
                 sub_thread_error = e
                 raise e
-            print('[',args[2]+1,']Error in sub thread: (', e, ') ignored')
+            print('[',args[1]+1,']Error in sub thread: (', e, ') ignored')
     for title in titles:
         while threading.active_count() > threads:
             time.sleep(0.1)
