@@ -58,11 +58,11 @@ pip3 install dokuWikiDumper
 ```bash
 usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--skip-to SKIP_TO] [--path PATH]
                       [--no-resume] [--threads THREADS] [--insecure] [--ignore-errors] [--ignore-action-disabled-edit]
-                      [--delay DELAY] [--retry RETRY] [--username USERNAME] [--password PASSWORD] [--cookies COOKIES]
-                      [--auto]
+                      [--ignore-disposition-header-missing] [--delay DELAY] [--retry RETRY] [--username USERNAME]
+                      [--password PASSWORD] [--cookies COOKIES] [--auto]
                       url
 
-dokuWikiDumper Version: 0.1.16
+dokuWikiDumper Version: 0.1.17
 
 positional arguments:
   url                   URL of the dokuWiki (provide the doku.php URL)
@@ -80,6 +80,8 @@ options:
                         Some sites disable edit action for anonymous users and some core pages. This option will ignore
                         this error and textarea not found error.But you may only get a partial dump. (only works with
                         --content)
+  --ignore-disposition-header-missing
+                        Do not check Disposition header, useful for outdated (<2014) DokuWiki versions [default: False]
   --delay DELAY         Delay between requests [default: 0.0]
   --retry RETRY         Maximum number of retries [default: 5]
   --username USERNAME   login: username
