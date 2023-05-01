@@ -56,23 +56,20 @@ pip3 install dokuWikiDumper
 ## Usage
 
 ```bash
-usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS]
-                      [--insecure] [--ignore-errors] [--ignore-action-disabled-edit] [--username USERNAME] [--password PASSWORD]
-                      [--cookies COOKIES] [--auto]
+usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--skip-to SKIP_TO] [--path PATH]
+                      [--no-resume] [--threads THREADS] [--insecure] [--ignore-errors] [--ignore-action-disabled-edit]
+                      [--delay DELAY] [--retry RETRY] [--username USERNAME] [--password PASSWORD] [--cookies COOKIES]
+                      [--auto]
                       url
 
-dokuWikiDumper
+dokuWikiDumper Version: 0.1.16
 
 positional arguments:
-  url                   URL of the dokuWiki
+  url                   URL of the dokuWiki (provide the doku.php URL)
 
 options:
   -h, --help            show this help message and exit
-  --content             Dump content
-  --media               Dump media
-  --html                Dump HTML
-  --pdf                 Dump PDF [default: false] (Only available on some wikis with the PDF export plugin) (Only dumps the latest PDF revision)
-  --current-only        Dump latest revision, no history [default: false] (only for HTML at the moment)
+  --current-only        Dump latest revision, no history [default: false]
   --skip-to SKIP_TO     !DEV! Skip to title number [default: 0]
   --path PATH           Specify dump directory [default: <site>-<date>]
   --no-resume           Do not resume a previous dump [default: resume]
@@ -80,12 +77,24 @@ options:
   --insecure            Disable SSL certificate verification
   --ignore-errors       !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
   --ignore-action-disabled-edit
-                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not found error.But
-                        you may only get a partial dump. (only works with --content)
+                        Some sites disable edit action for anonymous users and some core pages. This option will ignore
+                        this error and textarea not found error.But you may only get a partial dump. (only works with
+                        --content)
+  --delay DELAY         Delay between requests [default: 0.0]
+  --retry RETRY         Maximum number of retries [default: 5]
   --username USERNAME   login: username
   --password PASSWORD   login: password
   --cookies COOKIES     cookies file
-  --auto                dump: content+media+html, threads=5, ignore-action-disable-edit
+  --auto                dump: content+media+html, threads=5, ignore-action-disable-edit. (threads is overridable)
+
+Data to download:
+  What info download from the wiki
+
+  --content             Dump content
+  --media               Dump media
+  --html                Dump HTML
+  --pdf                 Dump PDF [default: false] (Only available on some wikis with the PDF export plugin) (Only dumps
+                        the latest PDF revision)
 ```
 
 For most cases, you can use `--auto` to dump the site.
@@ -122,14 +131,15 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --
 | `media/`                | media files.                                |
 | `meta/`                 | metadata of the pages.                      |
 | `pages/`                | latest page content. (wikitext)             |
+| `*.mark`                | mark file.                                  |
 <!-- /Dump structure -->
 
 ## Available Backups/Dumps
 
 I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.
 
-> Some wikidump has been uploaded to IA, you can check out the list: <https://archive.org/search?query=subject%3A"dokuWikiDumper">
-> 
+> Some wikidump has been uploaded to IA, you can check out: <https://archive.org/search?query=subject%3A"dokuWikiDumper">
+>
 > If you dumped a DokuWiki and want to share it, please feel free to open an issue, I will add it to the list.
 
 ## How to import dump to DokuWiki
