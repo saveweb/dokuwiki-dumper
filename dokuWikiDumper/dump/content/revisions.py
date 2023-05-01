@@ -108,9 +108,9 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
             try:
                 lis = soup.find('div', {'class': 'page'}).find(
                     'ul').findAll('li')
-            except Exception as e:
+            except:
                 # still fail
-                raise e
+                raise
 
         for li in lis:
             rev = {}

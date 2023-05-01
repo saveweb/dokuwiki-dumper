@@ -27,7 +27,7 @@ from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
 from dokuWikiDumper.dump.pdf import dump_PDF
 from dokuWikiDumper.utils.config import update_config
-from dokuWikiDumper.utils.delay import DelaySession
+from dokuWikiDumper.utils.delay import SessionMonkeyPatch
 from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
 
@@ -72,6 +72,8 @@ def getArgumentParser():
 
     parser.add_argument('--delay', help='Delay between requests [default: 0.0]', type=float, default=0.0)
     parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)
+    parser.add_argument('--hard-retry', type=int, default=3, dest='hard_retry',
+                        help='Maximum number of retries for hard errors [default: 3]')
 
     parser.add_argument('--username', help='login: username')
     parser.add_argument('--password', help='login: password')
@@ -157,9 +159,9 @@ def dump():
         requests.packages.urllib3.disable_warnings()
         print("Warning: SSL certificate verification disabled.")
     
-    if args.delay > 0.0:
-        delay_session = DelaySession(session=session, delay=args.delay, msg='')
-        delay_session.hijack()
+    session_monkey = SessionMonkeyPatch(session=session, delay=args.delay, msg='',
+                                        hard_retries=args.hard_retry)
+    session_monkey.hijack()
 
     std_url = standardizeUrl(url_input)
     doku_url = getDokuUrl(std_url, session=session)
@@ -242,4 +244,5 @@ def dump():
                 f.write('done')
 
 
+    session_monkey.release()
     print('\n\n--Done--')
