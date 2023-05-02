@@ -111,6 +111,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
                     'ul').findAll('li')
             except:
                 # still fail
+                print(msg_header, 'Error: cannot find revisions list.')
                 raise
 
         for li in lis:

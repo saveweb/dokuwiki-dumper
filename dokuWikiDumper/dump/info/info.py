@@ -1,10 +1,11 @@
 import json
 import os
 import re
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 import requests
 
 from dokuWikiDumper.utils.util import print_with_lock as print
@@ -40,17 +41,24 @@ def update_info_json(dumpDir: str, info: dict):
         json.dump(info, f, indent=4, ensure_ascii=False)
 
 
-def get_html_lang(html: str) -> Optional[str]:
+def get_html_lang(html: Union[bytes, str]) -> Optional[str]:
     '''Returns the language of the html document.'''
 
     soup = BeautifulSoup(html, os.environ.get('htmlparser'))
     # <html lang="en" dir="ltr" class="no-js">
-    lang = soup.html.get('lang')
+    html_tag = soup.html
+    
+    lang = None
+    if html_tag:
+        lang = html_tag.get('lang')
+    
+    if isinstance(lang, list):
+        lang = lang[0]
 
     return lang
 
 
-def get_wiki_name(html: str):
+def get_wiki_name(html: Union[bytes, str]):
     '''Returns the name of the wiki.
 
     Tuple: (wiki_name: Optional[str], raw_title: Optional[str])'''
@@ -58,21 +66,27 @@ def get_wiki_name(html: str):
     soup = BeautifulSoup(html, os.environ.get('htmlparser'))
     raw_title = soup.head.title.text
     wiki_name = re.search(r'\[(.+)\]', raw_title)  # 'start [wikiname]'.
-    if wiki_name:
+    if wiki_name is not None:
         wiki_name = wiki_name.group(1)
     else:
         print('Warning: Could not find wiki name in HTML title.')
+    
+    if not isinstance(wiki_name, (str, type(None))):
+        wiki_name = None
 
     return wiki_name, raw_title
 
 
-def get_icon(html: str):
+def get_raw_icon_href(html: Union[bytes ,str]):
     '''Returns the icon url.'''
 
     soup = BeautifulSoup(html, os.environ.get('htmlparser'))
-    icon_url = soup.find('link', rel='shortcut icon')
-    if icon_url:
-        icon_url = icon_url.get('href')
+    icon_tag = soup.find('link', rel='shortcut icon')
+    icon_url = None
+    if isinstance(icon_tag, Tag):
+        icon_url = icon_tag.get('href')
+        if isinstance(icon_url, list):
+            icon_url = icon_url[0]
     else:
         print('Warning: Could not find icon in HTML.')
 
@@ -100,15 +114,18 @@ def update_info(dumpDir: str, doku_url: str, session: requests.Session):
         f.write(homepage_html)
         print('Saved homepage to', HOMEPAGE_FILEPATH)
 
-    checkpage_html = session.get(doku_url, params={'do': 'check'}).text
-    with uopen(os.path.join(dumpDir, CHECKPAGE_FILEPATH), 'w') as f:
+    checkpage_html = session.get(doku_url, params={'do': 'check'}).content
+    with open(os.path.join(dumpDir, CHECKPAGE_FILEPATH), 'wb') as f:
         f.write(checkpage_html)
         print('Saved checkpage to', CHECKPAGE_FILEPATH)
 
     wiki_name, raw_title = get_wiki_name(homepage_html)
     lang = get_html_lang(homepage_html)
-    icon_url = urljoin(doku_url, get_icon(homepage_html))
-    save_icon(dumpDir=dumpDir, url=icon_url, session=session)
+    icon_href = get_raw_icon_href(homepage_html)
+    icon_url = None
+    if icon_href is not None:
+        icon_url = urljoin(doku_url, icon_href)
+        save_icon(dumpDir=dumpDir, url=icon_url, session=session)
 
     info = {
         INFO_WIKI_NAME: wiki_name,
