@@ -110,3 +110,4 @@ def load_cookies(session: requests.Session, cookies_file: str) -> bool:
             cj.load(cookies_file, ignore_discard=True, ignore_expires=True)
         session.cookies.update(cj)
         print('Cookies loaded:', session.cookies.get_dict())
+        return True

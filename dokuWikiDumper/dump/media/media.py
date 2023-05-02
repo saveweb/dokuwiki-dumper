@@ -14,7 +14,7 @@ from dokuWikiDumper.utils.util import print_with_lock as print
 sub_thread_error = None
 
 
-def getFiles(url, ns: str = '',  dumpDir: str = '', session=None):
+def getFiles(url, ns: str = '',  dumpDir: str = '', session: requests.Session=None):
     """ Return a list of media filenames of a wiki """
 
     if dumpDir and os.path.exists(dumpDir + '/dumpMeta/files.txt'):

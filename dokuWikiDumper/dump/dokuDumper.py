@@ -27,7 +27,7 @@ from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
 from dokuWikiDumper.dump.pdf import dump_PDF
 from dokuWikiDumper.utils.config import update_config
-from dokuWikiDumper.utils.delay import SessionMonkeyPatch
+from dokuWikiDumper.utils.patch import SessionMonkeyPatch
 from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
 
@@ -69,6 +69,8 @@ def getArgumentParser():
     parser.add_argument('--ignore-disposition-header-missing', action='store_true',
                         help='Do not check Disposition header, useful for outdated (<2014) DokuWiki versions '
                         '[default: False]', dest='ignore_disposition_header_missing')
+    parser.add_argument('--trim-php-warnings', action='store_true', dest='trim_php_warnings',
+                        help='Trim PHP warning from HTML [default: False]')
 
     parser.add_argument('--delay', help='Delay between requests [default: 0.0]', type=float, default=0.0)
     parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)
@@ -169,9 +171,9 @@ def dump():
         session.verify = False
         requests.packages.urllib3.disable_warnings()
         print("Warning: SSL certificate verification disabled.")
-    
     session_monkey = SessionMonkeyPatch(session=session, delay=args.delay, msg='',
-                                        hard_retries=args.hard_retry)
+                                        hard_retries=args.hard_retry,
+                                        trim_PHP_warnings=args.trim_php_warnings)
     session_monkey.hijack()
 
     std_url = standardizeUrl(url_input)

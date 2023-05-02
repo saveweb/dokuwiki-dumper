@@ -16,8 +16,8 @@ printLock = threading.Lock()
 
 
 def check_int(s: str = ''):
-    """ Check if a string is an integer
-    :return: None if not an integer, otherwise the raw string
+    """ Check if a string is int-able
+    :return: None if not int-able, else the raw string
     """
     try:
         int(s)
@@ -162,3 +162,71 @@ def uopen(*args, **kwargs):
     """ I dont wanna type `encoding=utf8` anymore.
     Made for Windows compatibility :-( """
     return open(*args, encoding='UTF-8', **kwargs)
+
+
+WARNINGS_TO_REMOVE = tuple([
+    '<br>',
+    '<br />',
+    '<b>Warning</b>',
+    '<b>Error</b>',
+    '<b>Notice</b>',
+    '<b>Deprecated</b>',
+    '<b>Strict Standards</b>',
+    '<b>Strict warning</b>',
+    '<div class="error">',
+    "<div class='error'>",
+    '<div class="warning">',
+    "<div class='warning'>",
+    '<div class="Deprecated">',
+    "<div class='Deprecated'>",
+    '<error>'
+    # add more if needed
+])
+
+def trim_PHP_warnings(html_or_text: str, strict: bool = False) -> str:
+    """ Trim PHP warnings in HTML or wikitext (Cannot handle single line HTML)
+    
+    param: `strict`: if `True`, only remove warnings when found `<html` 
+    or `<!DOCTYPE html`(return original text if not found).
+    """
+
+    doc_type_is_html_TAG = '<!DOCTYPE html' in html_or_text
+    html_TAG = '<html' in html_or_text
+
+    if strict and not (doc_type_is_html_TAG or html_TAG):
+        return html_or_text
+
+    lines = html_or_text.splitlines(keepends=True) # keepends=True to keep \n
+
+    if len(lines) == 1 and (doc_type_is_html_TAG or html_TAG):
+        print('Warning: cannot remove dokuwiki warnings in single line text')
+        return html_or_text # original text
+
+    new_text = ''
+    in_document = False
+    for line in lines:
+        if in_document:
+            new_text += line
+            continue
+
+        if ((doc_type_is_html_TAG and '<!DOCTYPE html' in line) or
+            (html_TAG             and '<html'          in line)
+        ):
+            in_document = True
+            new_text = line # first line
+            continue
+        elif (doc_type_is_html_TAG or html_TAG):
+            # remove anything before '<!DOCTYPE html' or '<html'
+            print('Removing PHP warning: ' + line.strip())
+            continue
+
+        # in_document == False, doc_type_is_html_TAG == False, html_TAG == False
+        if (line.startswith(WARNINGS_TO_REMOVE)):
+            print('HTML header not found, removing PHP warning (unsafely): ' + line.strip())
+            continue
+        else:
+            in_document = True
+            new_text = line # first line
+            continue
+    
+    return new_text
