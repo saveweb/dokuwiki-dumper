@@ -61,11 +61,11 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
     select_revs = False  # temp fix
     revs = []
     rev_tmplate = {
-        'id': None,
-        'user': None,
-        'sum': None,
-        'date': None,
-        'minor': False,
+        'id': None, # str(int)
+        'user': None, # str
+        'sum': None, # str
+        'date': None, # str
+        'minor': False, # bool
         'sizechange': 0,
     }
 

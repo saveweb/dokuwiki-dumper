@@ -1,10 +1,12 @@
 import os
 import urllib.parse as urlparse
 from bs4 import BeautifulSoup
+import requests
+from dokuWikiDumper.exceptions import ActionIndexDisabled
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 
-def getTitles(url, ns=None, session=None):
+def getTitles(url, ns=None, session: requests.Session=None):
     """Get titles given a doku.php URL and an (optional) namespace"""
 
     # # force use of old method for now
@@ -41,7 +43,7 @@ def getTitles(url, ns=None, session=None):
     return titles
 
 
-def getTitlesOld(url, ns=None, ancient=False, session=None):
+def getTitlesOld(url, ns=None, ancient=False, session:requests.Session=None):
     """Get titles using the doku.php?do=index"""
 
     titles = []
@@ -65,11 +67,18 @@ def getTitlesOld(url, ns=None, ancient=False, session=None):
             qs = urlparse.urlparse(href).query
             qs = urlparse.parse_qs(qs)
             return 'idx' in qs and qs['idx'][0] in (ns, ':' + ns)
-        result = soup.findAll(
+        try:
+            result = soup.findAll(
             'a', {
                 'class': 'idx_dir', 'href': match})[0].findAllPrevious('li')[0].findAll(
             'a', {
                 'href': lambda x: x and not match(x)})
+        except:
+            if 'Command disabled: index' in r.text:
+                raise ActionIndexDisabled
+            
+            raise
+
     else:
         print('Finding titles (?do=index)')
         result = soup.findAll('a')

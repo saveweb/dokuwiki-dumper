@@ -35,6 +35,14 @@ class ActionEditDisabled(Exception):
 
     def __str__(self):
         return "Action: edit is disabled for [[%s]]" % self.title
+
+
+class ActionIndexDisabled(Exception):
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return "Action: index is disabled"
     
 
 class ActionEditTextareaNotFound(Exception):
