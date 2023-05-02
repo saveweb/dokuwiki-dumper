@@ -56,13 +56,13 @@ pip3 install dokuWikiDumper
 ## Usage
 
 ```bash
-usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--skip-to SKIP_TO] [--path PATH] [--no-resume]
-                      [--threads THREADS] [--insecure] [--ignore-errors] [--ignore-action-disabled-edit]
-                      [--ignore-disposition-header-missing] [--delay DELAY] [--retry RETRY] [--hard-retry HARD_RETRY] [--parser PARSER]
-                      [--username USERNAME] [--password PASSWORD] [--cookies COOKIES] [--auto]
+usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS]
+                      [--insecure] [--ignore-errors] [--ignore-action-disabled-edit] [--ignore-disposition-header-missing] [--trim-php-warnings]
+                      [--delay DELAY] [--retry RETRY] [--hard-retry HARD_RETRY] [--parser PARSER] [--username USERNAME] [--password PASSWORD]
+                      [--cookies COOKIES] [--auto]
                       url
 
-dokuWikiDumper Version: 0.1.18
+dokuWikiDumper Version: 0.1.20
 
 positional arguments:
   url                   URL of the dokuWiki (provide the doku.php URL)
@@ -77,10 +77,11 @@ options:
   --insecure            Disable SSL certificate verification
   --ignore-errors       !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
   --ignore-action-disabled-edit
-                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and
-                        textarea not found error.But you may only get a partial dump. (only works with --content)
+                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not
+                        found error.But you may only get a partial dump. (only works with --content)
   --ignore-disposition-header-missing
                         Do not check Disposition header, useful for outdated (<2014) DokuWiki versions [default: False]
+  --trim-php-warnings   Trim PHP warnings from HTML [default: False]
   --delay DELAY         Delay between requests [default: 0.0]
   --retry RETRY         Maximum number of retries [default: 5]
   --hard-retry HARD_RETRY
@@ -97,8 +98,7 @@ Data to download:
   --content             Dump content
   --media               Dump media
   --html                Dump HTML
-  --pdf                 Dump PDF [default: false] (Only available on some wikis with the PDF export plugin) (Only dumps the latest PDF
-                        revision)
+  --pdf                 Dump PDF [default: false] (Only available on some wikis with the PDF export plugin) (Only dumps the latest PDF revision)
 ```
 
 For most cases, you can use `--auto` to dump the site.
