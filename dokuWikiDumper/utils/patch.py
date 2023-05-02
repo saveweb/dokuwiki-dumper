@@ -5,7 +5,7 @@ from dokuWikiDumper.utils.util import trim_PHP_warnings
 
 class SessionMonkeyPatch:
     """ Monkey patch `requests.Session.send` to add delay and hard retries
-        Monkey patch `requests.Response.text` to trim PHP warnings
+        Monkey patch `requests.Response.text` to trim PHP warnings and handle incorrect encoding
     """
     def __init__(self, session: requests.Session, 
                  msg=None, delay: float=0.0, hard_retries=3,
@@ -46,14 +46,20 @@ class SessionMonkeyPatch:
         self.session.send = new_send
 
         # Monkey patch `requests.Response.text`
-        if self.trim_PHP_warnings:
-            self.old_text_method = requests.Response.text
-            def new_text(_self):
-                text = self.old_text_method.fget(_self)
-                text = trim_PHP_warnings(text, strict=self.trim_PHP_warnings_strict_mode)
-                return text
+        self.old_text_method = requests.Response.text
+        def new_text(_self):
+            # Handle incorrect encoding
+            if _self.encoding is None or _self.encoding == 'ISO-8859-1':
+                _self.encoding = _self.apparent_encoding
+                if _self.encoding is None:
+                    _self.encoding = 'utf-8'
 
-            requests.Response.text = property(new_text)
+            text = self.old_text_method.fget(_self)
+            if self.trim_PHP_warnings:
+                text = trim_PHP_warnings(text, strict=self.trim_PHP_warnings_strict_mode)
+            return text
+
+        requests.Response.text = property(new_text)
 
     def release(self):
         ''' Undo monkey patch '''
