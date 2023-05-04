@@ -220,13 +220,20 @@ def trim_PHP_warnings(html_or_text: str, strict: bool = False) -> str:
             print('Removing PHP warning: ' + line.strip())
             continue
 
-        # in_document == False, doc_type_is_html_TAG == False, html_TAG == False
+        # here: in_document == False, doc_type_is_html_TAG == False, html_TAG == False
         if (line.startswith(WARNINGS_TO_REMOVE)):
-            print('HTML header not found, removing PHP warning (unsafely): ' + line.strip())
+            print('(HTML header not found) removing PHP warning (unsafely): ' + line.strip())
             continue
         else:
             in_document = True
+            # print('The line is not PHP warning (if it is, please report an issue): ' + line.strip())
             new_text = line # first line
             continue
-    
+
+    def help_wanted(msg: str = ''):
+        print_with_lock(msg) # with color
+    if html_or_text != new_text:
+        help_wanted("[yellow]Notice: trim_PHP_warnings() needs more sample sites to test. "
+                "Please report an issue if you found some warnings are not removed.[/yellow]")
+
     return new_text
