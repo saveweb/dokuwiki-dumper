@@ -20,7 +20,7 @@ import requests
 # import gzip, 7z
 from dokuWikiDumper.utils.util import print_with_lock as print
 
-from dokuWikiDumper.__version__ import DUMPER_VERSION
+from dokuWikiDumper.__version__ import DUMPER_VERSION, dokuWikiDumper_outdated_check
 from dokuWikiDumper.dump.content import dumpContent
 from dokuWikiDumper.dump.html import dump_HTML
 from dokuWikiDumper.dump.info import update_info
@@ -56,6 +56,9 @@ def getArgumentParser():
         '--no-resume', help='Do not resume a previous dump [default: resume]', action='store_true')
     parser.add_argument(
         '--threads', help='Number of sub threads to use [default: 1], not recommended to set > 5', type=int, default=DEFAULT_THREADS)
+    parser.add_argument(
+        '--i-love-retro',  action='store_true', dest='user_love_retro',
+        help='Do not check the latest version of dokuWikiDumper (from pypi.org) before running [default: False]')
 
     parser.add_argument('--insecure', action='store_true',
                         help='Disable SSL certificate verification')
@@ -163,6 +166,8 @@ def getParameters():
 
 def dump():
     args = getParameters()
+    if not args.user_love_retro:
+        dokuWikiDumper_outdated_check()
     url_input = args.url
     skip_to = args.skip_to
 

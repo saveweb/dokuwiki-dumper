@@ -1,3 +1,10 @@
+class VersionOutdatedError(Exception):
+    def __init__(self, version):
+        self.version = version
+
+    def __str__(self):
+        return "Version outdated: %s" % self.version
+
 class HTTPStatusError(Exception):
     def __init__(self, r):
         self.status_code = r.status_code
