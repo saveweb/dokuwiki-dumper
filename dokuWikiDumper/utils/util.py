@@ -234,6 +234,6 @@ def trim_PHP_warnings(html_or_text: str, strict: bool = False) -> str:
         print_with_lock(msg) # with color
     if html_or_text != new_text:
         help_wanted("[yellow]Notice: trim_PHP_warnings() needs more sample sites to test. "
-                "Please report an issue if you found some warnings are not removed.[/yellow]")
+                "Please feedback if you found some warnings are not removed.[/yellow]")
 
     return new_text

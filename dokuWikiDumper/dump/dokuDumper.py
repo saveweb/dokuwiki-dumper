@@ -73,7 +73,7 @@ def getArgumentParser():
                         help='Do not check Disposition header, useful for outdated (<2014) DokuWiki versions '
                         '[default: False]', dest='ignore_disposition_header_missing')
     parser.add_argument('--trim-php-warnings', action='store_true', dest='trim_php_warnings',
-                        help='Trim PHP warnings from HTML [default: False]')
+                        help='Trim PHP warnings from requests.Response.text')
 
     parser.add_argument('--delay', help='Delay between requests [default: 0.0]', type=float, default=0.0)
     parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)

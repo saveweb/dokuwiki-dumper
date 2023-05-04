@@ -64,7 +64,16 @@ def get_wiki_name(html: Union[bytes, str]):
     Tuple: (wiki_name: Optional[str], raw_title: Optional[str])'''
 
     soup = BeautifulSoup(html, os.environ.get('htmlparser'))
-    raw_title = soup.head.title.text
+    try:
+        raw_title = soup.head.title.text
+    except:
+        print(    '[red]Error: Could not find HTML title[/red]', end='')
+        if isinstance(html, str) and 'Warning' in html:
+            print(' [red]and the HTML contains PHP warning.[/red]')
+            print('       Re-run with --trim-php-warnings or change the --parser may help.')
+        else:
+            print('.')
+        raise
     wiki_name = re.search(r'\[(.+)\]', raw_title)  # 'start [wikiname]'.
     if wiki_name is not None:
         wiki_name = wiki_name.group(1)
