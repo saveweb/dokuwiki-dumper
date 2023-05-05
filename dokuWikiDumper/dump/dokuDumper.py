@@ -88,6 +88,11 @@ def getArgumentParser():
     parser.add_argument('--cookies', help='cookies file')
     parser.add_argument('--auto', action='store_true', 
                         help='dump: content+media+html, threads=5, ignore-action-disable-edit. (threads is overridable)')
+    parser.add_argument('-u', '--upload', action='store_true', 
+                        help='Upload wikidump to Internet Archive after successfully dumped'
+                        ' (only works with --auto)')
+    parser.add_argument("-g", "--uploader-arg", dest="uploader_args", action='append', default=[],
+                        help="Arguments for uploader.")
 
     return parser
 
@@ -130,6 +135,9 @@ def checkArgs(args):
         input('Press Enter to continue...')
     if args.retry < 0:
         print('Retry must be >= 0.')
+        return False
+    if args.upload and not args.auto:
+        print('Warning: You have specified --upload, but you have not specified --auto.')
         return False
     if args.parser:
         try:
@@ -264,3 +272,12 @@ def dump():
 
     session_monkey.release()
     print('\n\n--Done--')
+
+    if args.upload and args.auto:
+        print('Uploading to Internet Archive...')
+        # from dokuWikiUploader.uploader import upload
+        from subprocess import call
+        time.sleep(5)
+        call([sys.executable, '-m', 'dokuWikiUploader.uploader', dumpDir] + args.uploader_args,
+             shell=False, env=os.environ.copy())
+        print('dokuWikiUploader: --upload: Done')
