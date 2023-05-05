@@ -68,6 +68,7 @@ def upload(args={}):
     title = (info.get(INFO_WIKI_NAME) if info.get(INFO_WIKI_NAME) else info.get(INFO_RAW_TITLE))
     title = title if info.get(INFO_RAW_TITLE) else url2prefix(info.get(INFO_DOKU_URL))
     title = title if title else 'Unknown'
+    title = title.replace('\r', '').replace('\n', '').strip()
     try:
         _dump_dir_ab = os.path.abspath(dump_dir)
         _dump_dir_basename = os.path.basename(_dump_dir_ab)

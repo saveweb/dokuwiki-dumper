@@ -84,7 +84,7 @@ def get_wiki_name(html: Union[bytes, str]):
         wiki_name = None
 
     if isinstance(wiki_name, str):
-        wiki_name = wiki_name.strip().replace('\n', ' ').replace('\r', '')
+        wiki_name = wiki_name.replace('\n', ' ').replace('\r', '').strip()
 
     return wiki_name, raw_title
 
