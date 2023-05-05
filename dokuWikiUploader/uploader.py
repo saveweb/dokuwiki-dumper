@@ -123,6 +123,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         "subject": "; ".join(
             keywords_init
         ),  # Keywords should be separated by ; but it doesn't matter much; the alternative is to set one per field with subject[0], subject[1], ...
+        "uplode-state": "uploading",
     }
     language = info.get(INFO_LANG) if info.get(INFO_LANG) else config.get('lang')
     if language:
@@ -210,6 +211,9 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         if item.metadata.get("originalurl") != info.get(INFO_DOKU_URL):
             print("    (update originalurl)...")
             new_md.update({"originalurl": info.get(INFO_DOKU_URL)})
+        if item.metadata.get("uplode-state") != "uploaded":
+            print("    (update uplode-state)...")
+            new_md.update({"uplode-state": "uploaded"})
 
         if new_md:
             r = item.modify_metadata(metadata=new_md,  # update
