@@ -68,7 +68,7 @@ def dump_HTML(doku_url, dumpDir,
 
 def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.Session, current_only: bool = False):
     r = session.get(doku_url, params={'do': 'export_xhtml', 'id': title})
-    # export_html is a alias of export_xhtml
+    # export_html is a alias of export_xhtml, but not exist in older versions of dokuwiki
     r.raise_for_status()
     if r.text is None or r.text == '':
         raise Exception(f'Empty response (r.text)')

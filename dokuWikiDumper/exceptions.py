@@ -64,4 +64,4 @@ class ActionExportHtmlDisabled(Exception):
         self.title = title
 
     def __str__(self):
-        return "Action: export_html is disabled for [[%s]]" % self.title
+        return "Action: export_xhtml is disabled for [[%s]]" % self.title

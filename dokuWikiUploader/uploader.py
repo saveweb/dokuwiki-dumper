@@ -57,6 +57,9 @@ def upload(args={}):
     access_key, secret_key = read_ia_keys(os.path.expanduser(args.keysfile))
     collection = args.collection
     pack_dumpMeta_dir = args.pack_dumpMeta
+    level0_no_compress = args.level0_no_compress
+
+
     info = get_info(dump_dir)
     config = get_config(dump_dir)
     headers = {"User-Agent": USER_AGENT}
@@ -153,6 +156,9 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
 
             print(f"Compressing {_dir}...")
             level = 1 if (dir == "media" or dir == "pdf") else 5
+            if dir in level0_no_compress:
+                print(f"Packing {dir} with level 0 compression...")
+                level = 0
             filedict.update({identifier_local+"-"+dir+".7z": compress(_dir, path7z, level=level)})
 
     # Upload files and update metadata
@@ -257,6 +263,9 @@ def main(params=[]):
                         help="Pack the dumpMeta/ directory into a 7z file, then upload it. "
                              "instead of uploading all files in dumpMeta/ directory individually. "
                              "[default: False]")
+    parser.add_argument('-n', '--level0-no-compress',default=[],dest='level0_no_compress',
+                        choices=['media', 'pdf'], nargs='?',action='append',
+                        help='Pack XXYY dir(s) into 7z file(s) without any compression. (level 0, copy mode)')
     parser.add_argument("dump_dir", help="Path to the wiki dump directory.")
     args = parser.parse_args()
 
