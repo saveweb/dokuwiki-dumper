@@ -68,6 +68,12 @@ def upload(args={}):
     title = (info.get(INFO_WIKI_NAME) if info.get(INFO_WIKI_NAME) else info.get(INFO_RAW_TITLE))
     title = title if info.get(INFO_RAW_TITLE) else url2prefix(info.get(INFO_DOKU_URL))
     title = title if title else 'Unknown'
+    if title == 'start':
+        # some sites use 'wikiname [pagetitle]' as the title instead of 'pagetitle [wikiname]'.
+        # so, fallback to INFO_RAW_TITLE
+        title = info.get(INFO_RAW_TITLE)
+        title = title.replace('[start]', '')
+
     title = title.replace('\r', '').replace('\n', '').strip()
     try:
         _dump_dir_ab = os.path.abspath(dump_dir)
