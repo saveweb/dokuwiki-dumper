@@ -65,7 +65,7 @@ def get_wiki_name(html: Union[bytes, str]):
 
     soup = BeautifulSoup(html, os.environ.get('htmlparser'))
     try:
-        raw_title = soup.head.title.text
+        raw_title = soup.title.text
     except:
         print(    '[red]Error: Could not find HTML title[/red]', end='')
         if isinstance(html, str) and 'Warning' in html:
