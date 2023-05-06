@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import shutil
 import time
 import os
 import subprocess
@@ -277,6 +278,8 @@ def main(params=[]):
     parser.add_argument('-n', '--level0-no-compress',default=[],dest='level0_no_compress',
                         choices=['media', 'pdf'], nargs='?',action='append',
                         help='Pack XXYY dir(s) into 7z file(s) without any compression. (level 0, copy mode)')
+    parser.add_argument('-d', '--delete', action='store_true', dest='delete',
+                        help='Delete the dump dir after uploading. [default: False]')
     parser.add_argument("dump_dir", help="Path to the wiki dump directory.")
     args = parser.parse_args()
 
@@ -289,6 +292,14 @@ def main(params=[]):
 
     with open(os.path.join(args.dump_dir, UPLOADED_MARK), "w", encoding='UTF-8') as f:
         f.write("Uploaded to Internet Archive with dokuWikiUploader v%s on %s" % (UPLOADER_VERSION, time.strftime("%Y-%m-%d %H:%M:%S")))
+    
+    if args.delete:
+        print("Deleting the dump dir in 5 seconds...(Ctrl+C to cancel)", end="")
+        for _ in range(5):
+            print(".", end="", flush=True)
+            time.sleep(1)
+        shutil.rmtree(args.dump_dir)
+        print("Deleted!")
 
 if __name__ == "__main__":
     main()
