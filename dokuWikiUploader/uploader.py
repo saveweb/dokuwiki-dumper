@@ -66,16 +66,16 @@ def upload(args={}):
     headers = {"User-Agent": USER_AGENT}
 
 
-    title = (info.get(INFO_WIKI_NAME) if info.get(INFO_WIKI_NAME) else info.get(INFO_RAW_TITLE))
-    title = title if info.get(INFO_RAW_TITLE) else url2prefix(info.get(INFO_DOKU_URL))
-    title = title if title else 'Unknown'
-    if title == 'start':
+    wikiname = (info.get(INFO_WIKI_NAME) if info.get(INFO_WIKI_NAME) else info.get(INFO_RAW_TITLE))
+    wikiname = wikiname if info.get(INFO_RAW_TITLE) else url2prefix(info.get(INFO_DOKU_URL))
+    wikiname = wikiname if wikiname else 'Unknown'
+    if wikiname == 'start':
         # some sites use 'wikiname [pagetitle]' as the title instead of 'pagetitle [wikiname]'.
         # so, fallback to INFO_RAW_TITLE
-        title = info.get(INFO_RAW_TITLE)
-        title = title.replace('[start]', '')
+        wikiname = info.get(INFO_RAW_TITLE)
+        wikiname = wikiname.replace('[start]', '')
 
-    title = title.replace('\r', '').replace('\n', '').strip()
+    wikiname = wikiname.replace('\r', '').replace('\n', '').strip()
     try:
         _dump_dir_ab = os.path.abspath(dump_dir)
         _dump_dir_basename = os.path.basename(_dump_dir_ab)
@@ -97,12 +97,12 @@ def upload(args={}):
     # identifier_remote = 'test-wiki-' + identifier_local # 
 
     description_with_URL = \
-f'''DokuWiki: <a href="{info.get(INFO_DOKU_URL)}" rel="nofollow">{title}</a>
+f'''DokuWiki: <a href="{info.get(INFO_DOKU_URL)}" rel="nofollow">{wikiname}</a>
 <br>
 <br>
 Dumped with <a href="https://github.com/saveweb/dokuwiki-dumper" rel="nofollow">DokuWiki-Dumper</a> v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.'''
     description_without_URL = \
-f'''DokuWiki: {title}
+f'''DokuWiki: {wikiname}
 <br>
 <br>
 Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploaded with dokuWikiUploader v{UPLOADER_VERSION}.'''
@@ -114,8 +114,8 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         "wikidump",
     ]
     keywords_full = keywords_init.copy()
-    if title and title not in keywords_full:
-        keywords_full.append(title)
+    if wikiname and wikiname not in keywords_full:
+        keywords_full.append(wikiname)
     if info.get(INFO_DOKU_URL):
         keywords_full.append(url2prefix(info.get(INFO_DOKU_URL)))
 
@@ -124,7 +124,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
     md_init = {
         "mediatype": "web",
         "collection": collection,
-        "title": "Wiki - " + title,
+        "title": "Wiki - " + wikiname,
         "description": description_without_URL, # without URL, to bypass IA's anti-spam.
         "last-updated-date": time.strftime("%Y-%m-%d"),
         "subject": "; ".join(
@@ -204,20 +204,32 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
 
         print("Updating description...")
         new_md  = {}
+
         if (info.get(INFO_DOKU_URL) not in item.metadata.get("description") or
             'https://github.com/saveweb/dokuwiki-dumper' not in item.metadata.get("description")):
             # IA will format the description's HTML, so we can't just use `==` to compare.
             print("    (add URL back: %s )..." % info.get(INFO_DOKU_URL))
             new_md.update({"description": description_with_URL})
+
         if item.metadata.get("last-updated-date") != time.strftime("%Y-%m-%d"):
             print("    (update last-updated-date to %s )..." % time.strftime("%Y-%m-%d"))
             new_md.update({"last-updated-date": time.strftime("%Y-%m-%d")})
-        if item.metadata.get("subject") != "; ".join(keywords_full):
-            print("    (update subject: %s )..." % "; ".join(keywords_full))
-            new_md.update({"subject": "; ".join(keywords_full)})
+        
+        _subject_full = "; ".join(keywords_full)
+        _subject_without_wikiname = "; ".join(keywords_init + [url2prefix(info.get(INFO_DOKU_URL))])
+        # IA's subject field has a 255 bytes length limit, so we need to truncate it.
+        # wikiname may be too long, remove it first.
+        subject_final = _subject_full if len(_subject_full.encode("utf-8")) <= 255 else _subject_without_wikiname
+        # if it's still too long, use the init keywords.
+        subject_final = subject_final if len(subject_final.encode("utf-8")) <= 255 else "; ".join(keywords_init)
+        if item.metadata.get("subject") != subject_final:
+            print("    (update subject: %s )..." % subject_final)
+            new_md.update({"subject": subject_final})
+
         if item.metadata.get("originalurl") != info.get(INFO_DOKU_URL):
             print("    (update originalurl: %s )..." % info.get(INFO_DOKU_URL))
             new_md.update({"originalurl": info.get(INFO_DOKU_URL)})
+
         if item.metadata.get("upload-state") != "uploaded":
             print("    (update upload-state: uploaded)...")
             new_md.update({"upload-state": "uploaded"})
