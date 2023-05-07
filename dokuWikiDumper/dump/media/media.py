@@ -73,6 +73,7 @@ def dumpMedia(base_url: str = '', dumpDir: str = '', session=None, threads: int 
     # smkdirs(dumpDir + '/media_meta')
 
     fetch = urlparse.urljoin(base_url, 'lib/exe/fetch.php')
+    # media_repo = urlparse.urljoin(base_url, '_media')
 
     files = getFiles(base_url, dumpDir=dumpDir, session=session)
     def try_download(*args, **kwargs):
@@ -124,7 +125,6 @@ def dumpMedia(base_url: str = '', dumpDir: str = '', session=None, threads: int 
                         to_download = True  # file exists but is incomplete
 
                 if to_download:
-                    r.raw.decode_content = True
                     with open(file, 'wb') as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             f.write(chunk)

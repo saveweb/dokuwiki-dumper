@@ -81,7 +81,6 @@ def _dump_pdf(dumpDir, index_of_title: int, title: str, doku_url, session: reque
         if local_size == remote_size:
             print(msg_header, '[[%s]]' % title, 'already exists')
         else:
-            r.raw.decode_content = True
             child_path = title.replace(':', '/')
             child_dir = os.path.dirname(child_path)
             smkdirs(dumpDir, PDF_PAGR_DIR, child_dir)
