@@ -203,7 +203,7 @@ def dump_page(dumpDir: str,
                     except:
                         id = None
                        
-
+                assert id is not None, 'Cannot parse date: %s' % rev['date']
                 # if rev_id is not unique, plus 1 to it until it is.
                 while id in revidOfPage:
                     id = str(int(id) + 1)

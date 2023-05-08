@@ -140,8 +140,8 @@ def checkArgs(args):
         print('Warning: You have specified --upload, but you have not specified --auto.')
         return False
     if args.parser:
+        from bs4 import BeautifulSoup, FeatureNotFound
         try:
-            from bs4 import BeautifulSoup, FeatureNotFound
             BeautifulSoup("", args.parser)
             os.environ['htmlparser']=args.parser
         except FeatureNotFound:

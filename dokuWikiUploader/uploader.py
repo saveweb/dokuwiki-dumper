@@ -7,6 +7,7 @@ import subprocess
 import json
 
 from internetarchive import get_item
+import requests
 
 from dokuWikiDumper.utils.util import url2prefix
 from dokuWikiDumper.dump.info import get_info
@@ -73,6 +74,7 @@ def upload(args={}):
         # some sites use 'wikiname [pagetitle]' as the title instead of 'pagetitle [wikiname]'.
         # so, fallback to INFO_RAW_TITLE
         wikiname = info.get(INFO_RAW_TITLE)
+        assert isinstance(wikiname, str)
         wikiname = wikiname.replace('[start]', '')
 
     wikiname = wikiname.replace('\r', '').replace('\n', '').strip()
@@ -204,9 +206,8 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
 
         print("Updating description...")
         new_md  = {}
-
-        if (info.get(INFO_DOKU_URL) not in item.metadata.get("description") or
-            'https://github.com/saveweb/dokuwiki-dumper' not in item.metadata.get("description")):
+        if (info.get(INFO_DOKU_URL,"") not in item.metadata.get("description", "") or
+            'https://github.com/saveweb/dokuwiki-dumper' not in item.metadata.get("description", "")):
             # IA will format the description's HTML, so we can't just use `==` to compare.
             print("    (add URL back: %s )..." % info.get(INFO_DOKU_URL))
             new_md.update({"description": description_with_URL})
@@ -235,8 +236,11 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
             new_md.update({"upload-state": "uploaded"})
 
         if new_md:
-            r = item.modify_metadata(metadata=new_md,  # update
+            r = item.modify_metadata(metadata=new_md, # update
                                     access_key=access_key, secret_key=secret_key)
+            if isinstance(r, requests.Request):
+                breakpoint() # debug mode
+            assert isinstance(r, requests.Response)
             print(r.text)
             r.raise_for_status()
             print("Updating description: Done.")
