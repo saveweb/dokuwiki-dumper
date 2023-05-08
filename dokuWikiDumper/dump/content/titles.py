@@ -23,7 +23,10 @@ def getTitles(url, ns=None, session: requests.Session=None):
     depth = len(ns.split(':'))
     if ns:
         print('%sLooking in namespace %s' % (' ' * depth, ns))
-    r = session.post(ajax, params)
+    try:
+        r = session.post(ajax, data=params)
+    except requests.exceptions.RetryError:
+        return getTitlesOld(url, ns=None, session=session)
     if r.status_code != 200 or "AJAX call 'index' unknown!" in r.text:
         return getTitlesOld(url, ns=None, session=session)
     soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
