@@ -182,6 +182,8 @@ def dump_page(dumpDir: str,
                                 "%Y/%m/%d %H:%M:%S",
                                 "%d.%m.%Y %H:%M:%S",
                                 "%d/%m/%Y %H:%M:%S",
+
+                                "%d/%m/%Y alle %H:%M %p",
                                 ]
                 
                 # Try each date format until one works.
@@ -191,9 +193,11 @@ def dump_page(dumpDir: str,
                 # TODO: %Y/%m/%d %H:%M
                 # %d/%m/%Y %H:%M | <https://eolienne.f4jr.org/?do=revisions> #  28/02/2013 12:12
                 # %d/%m/%Y %H:%M:%S | <https://aezoo.compute.dtu.dk/doku.php> # 17/03/2014 12:03:33
+                # "%d/%m/%Y alle %H:%M", # <http://didawiki.cli.di.unipi.it/> # 01/03/2007 alle 14:20 (16 anni fa)
+
                 for date_format in date_formats:
                     try:
-                        date = datetime.strptime(rev['date'], date_format)
+                        date = datetime.strptime(rev['date'].split('(')[0].strip(), date_format)
                         id = str(int(time.mktime(date.utctimetuple())))
                         break
                     except:
