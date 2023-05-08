@@ -183,7 +183,7 @@ def dump_page(dumpDir: str,
                                 "%d.%m.%Y %H:%M:%S",
                                 "%d/%m/%Y %H:%M:%S",
 
-                                "%d/%m/%Y alle %H:%M %p",
+                                "%d/%m/%Y alle %H:%M",
                                 ]
                 
                 # Try each date format until one works.
