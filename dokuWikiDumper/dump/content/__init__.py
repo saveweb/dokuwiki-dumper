@@ -136,22 +136,6 @@ def dump_page(dumpDir: str,
                         select_revs, session=session, msg_header=msg_header)
 
     revidOfPage: set[str] = set()
-    for rev in revs[1:]:
-        if 'id' in rev and rev['id']:
-            try:
-                txt = getSource(doku_url, title, rev['id'], session=session,
-                                ignore_disposition_header_missing=ignore_disposition_header_missing)
-                smkdirs(dumpDir, '/attic/' + child_path)
-                with uopen(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
-                    f.write(txt)
-                print(msg_header, '    Revision %s of [[%s]] saved.' % (
-                    rev['id'], title))
-            except DispositionHeaderMissingError:
-                print(msg_header, '    Revision %s of [[%s]] is empty. (probably deleted)' % (
-                    rev['id'], title))
-
-            # time.sleep(1.5)
-
     smkdirs(dumpDir, '/meta/' + child_path)
     with uopen(dumpDir + '/meta/' + title.replace(':', '/') + '.changes', 'w') as f:
         # Loop through revisions in reverse.
@@ -230,3 +214,21 @@ def dump_page(dumpDir: str,
             row = row.replace('\r', ' ')
 
             f.write((row + '\n'))
+
+
+    for rev in revs[1:]:
+        if 'id' in rev and rev['id']:
+            try:
+                txt = getSource(doku_url, title, rev['id'], session=session,
+                                ignore_disposition_header_missing=ignore_disposition_header_missing)
+                smkdirs(dumpDir, '/attic/' + child_path)
+                with uopen(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                    f.write(txt)
+                print(msg_header, '    Revision %s of [[%s]] saved.' % (
+                    rev['id'], title))
+            except DispositionHeaderMissingError:
+                print(msg_header, '    Revision %s of [[%s]] is empty. (probably deleted)' % (
+                    rev['id'], title))
+
+            # time.sleep(1.5)
+
