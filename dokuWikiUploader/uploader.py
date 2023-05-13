@@ -141,13 +141,14 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         })
 
 
-    dirs_to_7z = ["attic","html","media","pages", "pdf"]
+    dirs_to_7z = ["attic","html","media","pages", "pdf", "meta"]
     mark_files = {"attic":  "content_dumped.mark", 
                 "pages":    "content_dumped.mark",
                 "html":     "html_dumped.mark",
                 "media":    "media_dumped.mark",
                 "pdf":      "pdf_dumped.mark",
-                "dumpMeta": "dumpMeta/" # no .mark file for dumpMeta, check itself instead.
+                "dumpMeta": "dumpMeta/", # no .mark file for dumpMeta, check itself instead.
+                "meta":     "meta/" # no .mark file...
                 }
     filedict = {} # "remote filename": "local filename"
 
