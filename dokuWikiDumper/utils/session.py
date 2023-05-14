@@ -47,14 +47,15 @@ def createSession(retries=5):
                 return super(CustomRetry, self).increment(method=method, url=url, *args, **kwargs)
 
             def sleep(self, response=None):
+                retry_after = self.get_retry_after(response)
                 backoff = self.get_backoff_time()
-                if backoff <= 0:
-                    return
-                if response is not None:
-                    msg = 'req retry (%s)' % response.status
+                delay_sec = retry_after if retry_after is not None else backoff
+                if response is None:
+                    msg = 'req retry in %.2fs' % delay_sec
                 else:
-                    msg = None
-                time.sleep(backoff)
+                    msg = 'req retry (%s, %s) in %.2fs' % (response.status, response.reason, delay_sec)
+                print(msg)
+                super(CustomRetry, self).sleep(response=response)
 
         __retries__ = CustomRetry(
             total=retries, backoff_factor=1.5,
