@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import base64
 from typing import Optional, Union
 from urllib.parse import urljoin
 
@@ -105,14 +106,22 @@ def get_raw_icon_href(html: Union[bytes ,str]):
     return icon_url
 
 
-def save_icon(dumpDir: str, url: str, session: requests.Session):
-    if url is None:
+def save_icon(dumpDir: str, url_or_dataUrl: str, session: requests.Session):
+    if url_or_dataUrl is None:
         return False
-    r = session.get(url)
+    if url_or_dataUrl.startswith('data:image'):
+        assert 'base64,' in url_or_dataUrl, 'Icon is not base64 encoded.'
+        print('Saving icon from data url. (base64 encoded)')
+        data_base64 = url_or_dataUrl.split('base64,')[1]
+        data = base64.urlsafe_b64decode(data_base64)
+        with open(os.path.join(dumpDir, ICON_FILEPATH), 'wb') as f:
+            f.write(data)
+        return True
+
+    r = session.get(url_or_dataUrl)
     if 'image' not in r.headers.get('content-type', ''):
         print('Warning: Icon is not an image.')
         return False
-
     with open(os.path.join(dumpDir, ICON_FILEPATH), 'wb') as f:
         f.write(r.content)
         return True
@@ -135,9 +144,14 @@ def update_info(dumpDir: str, doku_url: str, session: requests.Session):
     lang = get_html_lang(homepage_html)
     icon_href = get_raw_icon_href(homepage_html)
     icon_url = None
-    if icon_href is not None:
+    if icon_href is not None and icon_href.startswith('data:image'):
+        # base64 encoded data url
+        icon_url = icon_href
+    elif icon_href is not None:
+        # normal url
         icon_url = urljoin(doku_url, icon_href)
-        save_icon(dumpDir=dumpDir, url=icon_url, session=session)
+
+    save_icon(dumpDir=dumpDir, url_or_dataUrl=icon_url, session=session)
 
     info = {
         INFO_WIKI_NAME: wiki_name,
