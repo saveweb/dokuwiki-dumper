@@ -6,11 +6,11 @@ from dokuWikiDumper.exceptions import ActionIndexDisabled
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 
-def getTitles(url, ns=None, session: requests.Session=None):
-    """Get titles given a doku.php URL and an (optional) namespace"""
+def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
+    """Get titles given a doku.php URL and an (optional) namespace
 
-    # # force use of old method for now
-    # return getTitlesOld(url, ns=None, session=session)
+    :param `useOldMethod`: `bool|None`. `None` will auto-detect if ajax api is enabled"""
+
 
     titles = []
     ajax = urlparse.urljoin(url, 'lib/exe/ajax.php')
@@ -23,12 +23,34 @@ def getTitles(url, ns=None, session: requests.Session=None):
     depth = len(ns.split(':'))
     if ns:
         print('%sLooking in namespace %s' % (' ' * depth, ns))
-    try:
-        r = session.post(ajax, data=params)
-    except requests.exceptions.RetryError:
+    
+
+    if useOldMethod is None:
+    # Don't know if ajax api is enabled
+        r = None
+        try:
+            print('Trying AJAX API (~15s...)')
+            # use requests directly to avoid the session retry
+            r = requests.post(ajax, data=params, timeout=15, # a timeout to avoid hanging
+                headers=session.headers, proxies=session.proxies,
+                verify=session.verify,cookies=session.cookies)
+            r.raise_for_status()
+            # ajax API OK
+            useOldMethod = False
+        except requests.exceptions.RequestException as e:
+            useOldMethod = True
+            print(str(e))
+
+        if r and (r.status_code != 200 or "AJAX call 'index' unknown!" in r.text):
+            useOldMethod = True
+
+    assert useOldMethod is not None
+    if useOldMethod is True:
+        print('AJAX API not enabled? Using old method...')
         return getTitlesOld(url, ns=None, session=session)
-    if r.status_code != 200 or "AJAX call 'index' unknown!" in r.text:
-        return getTitlesOld(url, ns=None, session=session)
+    
+    assert useOldMethod is False
+    r = session.post(ajax, data=params)
     soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
     for a in soup.findAll('a', href=True):
         if a.has_attr('title'):
