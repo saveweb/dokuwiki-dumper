@@ -25,9 +25,9 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
         print('%sLooking in namespace %s' % (' ' * depth, ns))
     
 
+    r = None
     if useOldMethod is None:
     # Don't know if ajax api is enabled
-        r = None
         try:
             print('Trying AJAX API (~15s...)')
             # use requests directly to avoid the session retry
@@ -50,7 +50,7 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
         return getTitlesOld(url, ns=None, session=session)
     
     assert useOldMethod is False
-    r = session.post(ajax, data=params)
+    r = session.post(ajax, data=params) if r is None else r # reuse the previous Response if possible
     soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
     for a in soup.findAll('a', href=True):
         if a.has_attr('title'):
@@ -59,7 +59,7 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
             query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
             title = (query['idx' if 'idx' in query else 'id'])[0]
         if 'idx_dir' in a['class']:
-            titles += getTitles(url=url, ns=title, session=session)
+            titles += getTitles(url=url, ns=title, session=session, useOldMethod=useOldMethod)
         else:
             titles.append(title)
     # time.sleep(1.5)
