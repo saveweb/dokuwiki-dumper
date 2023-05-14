@@ -2,7 +2,7 @@ from datetime import datetime
 import html
 import os
 import re
-import socket
+from ipaddress import ip_address, IPv4Address, IPv6Address
 import time
 import urllib.parse as urlparse
 
@@ -302,10 +302,10 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
 
         rev['user'] = rev['user'] if 'user' in rev else 'unknown'
         try:
-            # inet_pton throws an exception if its argument is not an IPv4/v6 address
-            socket.inet_pton(rev['user'])
+            ip_parsed = ip_address(rev['user'])
+            assert isinstance(ip_parsed, (IPv4Address, IPv6Address))
             ip = rev['user']
-        except socket.error:
+        except ValueError:
             user = rev['user']
 
         sizechange = rev['sizechange'] if 'sizechange' in rev else ''
