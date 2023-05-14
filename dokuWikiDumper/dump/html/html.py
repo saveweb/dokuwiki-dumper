@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import requests
-from dokuWikiDumper.dump.content.revisions import getRevisions
+from dokuWikiDumper.dump.content.revisions import getRevisions, save_page_changes
 from dokuWikiDumper.dump.content.titles import getTitles
 
 from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
@@ -75,10 +75,10 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
 
     msg_header = '['+str(index_of_title + 1)+']: '
 
-    child_path = title.replace(':', '/')
-    child_dir = os.path.dirname(child_path)
-    html_path = dumpDir + '/' + HTML_PAGR_DIR + child_path + '.html'
-    smkdirs(dumpDir, HTML_PAGR_DIR, child_dir)
+    title2path = title.replace(':', '/')
+    child_path = os.path.dirname(title2path)
+    html_path = dumpDir + '/' + HTML_PAGR_DIR + title2path + '.html'
+    smkdirs(dumpDir, HTML_PAGR_DIR, child_path)
     with uopen(html_path, 'w') as f:
         f.write(r.text)
         print(msg_header, '[[%s]]' % title, 'saved')
@@ -95,11 +95,15 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
                 r.raise_for_status()
                 if r.text is None or r.text == '':
                     raise Exception(f'Empty response (r.text)')
-                smkdirs(dumpDir, HTML_OLDPAGE_DIR, child_dir)   
-                old_html_path = dumpDir + '/' + HTML_OLDPAGE_DIR + child_path + '.' + rev['id'] + '.html'
+                smkdirs(dumpDir, HTML_OLDPAGE_DIR, child_path)   
+                old_html_path = dumpDir + '/' + HTML_OLDPAGE_DIR + title2path + '.' + rev['id'] + '.html'
 
                 with uopen(old_html_path, 'w') as f:
                     f.write(r.text)
                 print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], title))
             except requests.HTTPError as e:
                 print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, e))
+    
+
+    save_page_changes(dumpDir=dumpDir, child_path=child_path, title=title, 
+                       revs=revs, msg_header=msg_header)

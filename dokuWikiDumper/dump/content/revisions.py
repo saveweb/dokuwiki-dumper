@@ -1,13 +1,16 @@
+from datetime import datetime
 import html
 import os
 import re
+import socket
+import time
 import urllib.parse as urlparse
 
 import requests
 from bs4 import BeautifulSoup
 
 from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ContentTypeHeaderNotTextPlain, DispositionHeaderMissingError, HTTPStatusError
-from dokuWikiDumper.utils.util import check_int, print_with_lock as print
+from dokuWikiDumper.utils.util import check_int, print_with_lock as print, smkdirs, uopen
 
 
 # args must be same as getSourceEdit(), even if not used
@@ -226,3 +229,90 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
     #             'type': 'hidden', 'name': 'rev', 'value': True})['value']
 
     return revs
+
+
+def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
+    changes_file = dumpDir + '/meta/' + title.replace(':', '/') + '.changes'
+    if os.path.exists(changes_file):
+        print(msg_header, '    meta change file exists:', changes_file)
+        return
+
+    revidOfPage: set[str] = set()
+    smkdirs(dumpDir, '/meta/' + child_path)
+    with uopen(changes_file, 'w') as f:
+        # Loop through revisions in reverse.
+        for rev in revs[::-1]:
+            print(msg_header, '    meta change saving:', rev)
+            sum = 'sum' in rev and rev['sum'].strip() or ''
+            id = str(0)
+
+            ip = '127.0.0.1'
+            user = ''
+            minor = 'minor' in rev and rev['minor']
+
+            if 'id' in rev and rev['id']:
+                id = rev['id']
+            else:
+                # Different date formats in different versions of DokuWiki.
+                # If no ID was found, make one up based on the date (since rev IDs are Unix times)
+                # Maybe this is evil. Not sure.
+
+                print(msg_header, '    One revision of [[%s]] missing rev_id. Using date to rebuild...'
+                      % title, end=' ')
+                date_formats = ["%Y-%m-%d %H:%M",
+                                "%Y/%m/%d %H:%M",
+                                "%d.%m.%Y %H:%M",
+                                "%d/%m/%Y %H:%M",
+                                
+                                "%Y-%m-%d %H:%M:%S",
+                                "%Y/%m/%d %H:%M:%S",
+                                "%d.%m.%Y %H:%M:%S",
+                                "%d/%m/%Y %H:%M:%S",
+
+                                "%d/%m/%Y alle %H:%M",
+                                ]
+                
+                # Try each date format until one works.
+                # Example below:
+                # %Y-%m-%d %H:%M | <https://www.dokuwiki.org/dokuwiki?do=revisions> # 2019/01/01 00:00
+                # TODO: %Y-%m-%d %H:%M
+                # TODO: %Y/%m/%d %H:%M
+                # %d/%m/%Y %H:%M | <https://eolienne.f4jr.org/?do=revisions> #  28/02/2013 12:12
+                # %d/%m/%Y %H:%M:%S | <https://aezoo.compute.dtu.dk/doku.php> # 17/03/2014 12:03:33
+                # "%d/%m/%Y alle %H:%M", # <http://didawiki.cli.di.unipi.it/> # 01/03/2007 alle 14:20 (16 anni fa)
+
+                for date_format in date_formats:
+                    try:
+                        date = datetime.strptime(rev['date'].split('(')[0].strip(), date_format)
+                        id = str(int(time.mktime(date.utctimetuple())))
+                        break
+                    except:
+                        id = None
+                       
+                assert id is not None, 'Cannot parse date: %s' % rev['date']
+                # if rev_id is not unique, plus 1 to it until it is.
+                while id in revidOfPage:
+                    id = str(int(id) + 1)
+                print(msg_header, 'rev_id is now %s' % id)
+
+            revidOfPage.add(id)
+
+            rev['user'] = rev['user'] if 'user' in rev else 'unknown'
+            try:
+                # inet_aton throws an exception if its argument is not an IPv4 address
+                socket.inet_aton(rev['user'])
+                ip = rev['user']
+            except socket.error:
+                user = rev['user']
+
+            sizechange = rev['sizechange'] if 'sizechange' in rev else ''
+
+            extra = ''  # TODO: use this
+            # max 255 chars(utf-8) for summary. (dokuwiki limitation)
+            sum = sum[:255]
+            row = '\t'.join([id, ip, 'e' if minor else 'E',
+                            title, user, sum, extra, str(sizechange)])
+            row = row.replace('\n', ' ')
+            row = row.replace('\r', ' ')
+
+            f.write((row + '\n'))
