@@ -242,6 +242,8 @@ DATE_FORMATS = ["%Y-%m-%d %H:%M",
                 "%d/%m/%Y %H:%M:%S",
 
                 "%d/%m/%Y alle %H:%M",
+
+                "Le %d/%m/%Y, %H:%M",
                 ]
 
 # Try each date format until one works.
@@ -252,6 +254,7 @@ DATE_FORMATS = ["%Y-%m-%d %H:%M",
 # %d/%m/%Y %H:%M | <https://eolienne.f4jr.org/?do=revisions> #  28/02/2013 12:12
 # %d/%m/%Y %H:%M:%S | <https://aezoo.compute.dtu.dk/doku.php> # 17/03/2014 12:03:33
 # "%d/%m/%Y alle %H:%M", # <http://didawiki.cli.di.unipi.it/> # 01/03/2007 alle 14:20 (16 anni fa)
+# "Le %d/%m/%Y, %H:%M", # <https://doc.ubuntu-fr.org> # Le 23/09/2020, 17:01
 
 def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
     changes_file = dumpDir + '/meta/' + title.replace(':', '/') + '.changes'
