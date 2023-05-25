@@ -159,7 +159,7 @@ def getParameters():
         args.content = True
         args.media = True
         args.html = True
-        args.threads = args.threads if args.threads >= 1 else 5
+        args.threads = args.threads if args.threads >= 1 else 3
         args.ignore_action_disabled_edit = True
     else:
         # reset magic number
