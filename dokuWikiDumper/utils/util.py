@@ -43,7 +43,11 @@ def print_with_lock(*args, **kwargs):
 
 def avoidSites(url: str, session: requests.Session):
     #check robots.txt
-    r = session.get(urlparse(url).scheme + '://' + urlparse(url).netloc + '/robots.txt')
+    r = requests.get(
+        # Don't use the session.get() method here, since we want to avoid the session's retry logic
+        urlparse(url).scheme + '://' + urlparse(url).netloc + '/robots.txt',
+        cookies=session.cookies, headers=session.headers, verify=session.verify, proxies=session.proxies
+        )
     if r.status_code == 200:
         if 'User-agent: ia_archiver\nDisallow: /' in r.text or f'User-agent: dokuWikiDumper\nDisallow: /' in r.text:
             print('This wiki not allow dokuWikiDumper or IA to crawl.')
