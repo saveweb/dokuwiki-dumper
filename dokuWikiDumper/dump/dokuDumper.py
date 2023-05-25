@@ -17,6 +17,7 @@ import sys
 import time
 
 import requests
+from dokuWikiDumper.utils.dump_lock import DumpLock
 # import gzip, 7z
 from dokuWikiDumper.utils.util import print_with_lock as print
 
@@ -224,50 +225,52 @@ def dump():
                }
     update_config(dumpDir=dumpDir, config=_config)
     update_info(dumpDir, doku_url=doku_url, session=session)
-    if args.content:
-        if os.path.exists(os.path.join(dumpDir, 'content_dumped.mark')):
-            print('Content already dumped.')
-        else:
-            print('\nDumping content...\n')
-            dumpContent(doku_url=doku_url, dumpDir=dumpDir,
+
+    with DumpLock(dumpDir):
+        if args.content:
+            if os.path.exists(os.path.join(dumpDir, 'content_dumped.mark')):
+                print('Content already dumped.')
+            else:
+                print('\nDumping content...\n')
+                dumpContent(doku_url=doku_url, dumpDir=dumpDir,
+                            session=session, skipTo=skip_to, threads=args.threads,
+                            ignore_errors=args.ignore_errors,
+                            ignore_action_disabled_edit=args.ignore_action_disabled_edit,
+                            ignore_disposition_header_missing=args.ignore_disposition_header_missing,
+                            current_only=args.current_only)
+                with open(os.path.join(dumpDir, 'content_dumped.mark'), 'w') as f:
+                    f.write('done')
+        if args.html:
+            if os.path.exists(os.path.join(dumpDir, 'html_dumped.mark')):
+                print('HTML already dumped.')
+            else:
+                print('\nDumping HTML...\n')
+                dump_HTML(doku_url=doku_url, dumpDir=dumpDir,
                         session=session, skipTo=skip_to, threads=args.threads,
-                        ignore_errors=args.ignore_errors,
-                        ignore_action_disabled_edit=args.ignore_action_disabled_edit,
-                        ignore_disposition_header_missing=args.ignore_disposition_header_missing,
-                        current_only=args.current_only)
-            with open(os.path.join(dumpDir, 'content_dumped.mark'), 'w') as f:
-                f.write('done')
-    if args.html:
-        if os.path.exists(os.path.join(dumpDir, 'html_dumped.mark')):
-            print('HTML already dumped.')
-        else:
-            print('\nDumping HTML...\n')
-            dump_HTML(doku_url=doku_url, dumpDir=dumpDir,
-                    session=session, skipTo=skip_to, threads=args.threads,
-                    ignore_errors=args.ignore_errors, current_only=args.current_only)
-            with open(os.path.join(dumpDir, 'html_dumped.mark'), 'w') as f:
-                f.write('done')
-    if args.media: # last, so that we can know the dump is complete.
-        if os.path.exists(os.path.join(dumpDir, 'media_dumped.mark')):
-            print('Media already dumped.')
-        else:
-            print('\nDumping media...\n')
-            dumpMedia(base_url=base_url, dumpDir=dumpDir,
-                    session=session, threads=args.threads,
-                    ignore_errors=args.ignore_errors)
-            with open(os.path.join(dumpDir, 'media_dumped.mark'), 'w') as f:
-                f.write('done')
-    if args.pdf:
-        if os.path.exists(os.path.join(dumpDir, 'pdf_dumped.mark')):
-            print('PDF already dumped.')
-        else:
-            print('\nDumping PDF...\n')
-            dump_PDF(doku_url=base_url, dumpDir=dumpDir,
-                    session=session, threads=args.threads,
-                    ignore_errors=args.ignore_errors, current_only=True)
-                    # to avoid overload the server, we only dump the current revision of the PDF.
-            with open(os.path.join(dumpDir, 'pdf_dumped.mark'), 'w') as f:
-                f.write('done')
+                        ignore_errors=args.ignore_errors, current_only=args.current_only)
+                with open(os.path.join(dumpDir, 'html_dumped.mark'), 'w') as f:
+                    f.write('done')
+        if args.media: # last, so that we can know the dump is complete.
+            if os.path.exists(os.path.join(dumpDir, 'media_dumped.mark')):
+                print('Media already dumped.')
+            else:
+                print('\nDumping media...\n')
+                dumpMedia(base_url=base_url, dumpDir=dumpDir,
+                        session=session, threads=args.threads,
+                        ignore_errors=args.ignore_errors)
+                with open(os.path.join(dumpDir, 'media_dumped.mark'), 'w') as f:
+                    f.write('done')
+        if args.pdf:
+            if os.path.exists(os.path.join(dumpDir, 'pdf_dumped.mark')):
+                print('PDF already dumped.')
+            else:
+                print('\nDumping PDF...\n')
+                dump_PDF(doku_url=base_url, dumpDir=dumpDir,
+                        session=session, threads=args.threads,
+                        ignore_errors=args.ignore_errors, current_only=True)
+                        # to avoid overload the server, we only dump the current revision of the PDF.
+                with open(os.path.join(dumpDir, 'pdf_dumped.mark'), 'w') as f:
+                    f.write('done')
 
 
     session_monkey.release()
