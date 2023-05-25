@@ -196,13 +196,13 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         print(f"Uploading {len(filedict)} files: Done.\n")
 
 
-        tries = 20
+        tries = 30
+        item = get_item(identifier_remote) # refresh item
         while not item.exists and tries > 0:
-            print("Waiting for item to be created...", tries)
-            tries -= 1
-            time.sleep(10)
+            print(f"Waiting for item to be created ({tries})  ...", end='\r')
+            time.sleep(20)
             item = get_item(identifier_remote)
-
+            tries -= 1
 
 
         print("Updating description...")
