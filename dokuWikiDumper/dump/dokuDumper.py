@@ -281,6 +281,9 @@ def dump():
         # from dokuWikiUploader.uploader import upload
         from subprocess import call
         time.sleep(5)
-        call([sys.executable, '-m', 'dokuWikiUploader.uploader', dumpDir] + args.uploader_args,
+        retcode = call([sys.executable, '-m', 'dokuWikiUploader.uploader', dumpDir] + args.uploader_args,
              shell=False, env=os.environ.copy())
-        print('dokuWikiUploader: --upload: Done')
+        if retcode == 0:
+            print('dokuWikiUploader: --upload: Done')
+        else:
+            print('dokuWikiUploader: --upload: [red] Failed [/red]!!!')
