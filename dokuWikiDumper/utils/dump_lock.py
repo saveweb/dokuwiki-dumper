@@ -16,7 +16,7 @@ class DumpLock_Basic:
             sys.exit("Another instance is already running, quitting...")
         else:
             with open(self.lock_file, 'w', encoding='utf-8') as f:
-                f.write(f'PID: {os.getgid()}: Running')
+                f.write(f'PID: {os.getpid()}: Running')
             print("Acquired lock, continuing.")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
