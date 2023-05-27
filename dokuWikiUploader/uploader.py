@@ -200,7 +200,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         item = get_item(identifier_remote) # refresh item
         while not item.exists and tries > 0:
             print(f"Waiting for item to be created ({tries})  ...", end='\r')
-            time.sleep(20)
+            time.sleep(30)
             item = get_item(identifier_remote)
             tries -= 1
 
