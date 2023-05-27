@@ -32,20 +32,23 @@ class DumpLock_Basic:
 
 
 class DumpLock_Fcntl():
-    _fcntl = None
+    fcntl = None
     try:
-        import fcntl as _fcntl
-    except ImportError:
-        raise
+        import fcntl
+    except ModuleNotFoundError:
+        pass
 
     def __init__(self, lock_dir):
+        if self.fcntl is None:
+            raise(ModuleNotFoundError("No module named 'fcntl'", name='fcntl'))
+        
         self.lock_file = os.path.join(lock_dir, LOCK_FILENAME)
         self.lock_file_fd = None
 
     def __enter__(self):
         self.lock_file_fd = open(self.lock_file, 'w')
         try:
-            self._fcntl.lockf(self.lock_file_fd, self._fcntl.LOCK_EX | self._fcntl.LOCK_NB)
+            self.fcntl.lockf(self.lock_file_fd, self.fcntl.LOCK_EX | self.fcntl.LOCK_NB)
             print("Acquired lock, continuing.")
         except IOError:
             print("Another instance is already running, quitting.")
@@ -54,7 +57,7 @@ class DumpLock_Fcntl():
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.lock_file_fd is None:
             raise IOError("Lock file not opened.")
-        self._fcntl.lockf(self.lock_file_fd, self._fcntl.LOCK_UN)
+        self.fcntl.lockf(self.lock_file_fd, self.fcntl.LOCK_UN)
         self.lock_file_fd.close()
         os.remove(self.lock_file)
         print("Released lock.")
