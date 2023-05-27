@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dokuWikiDumper"
-version = "0.1.34"
+version = "0.1.35"
 description = "A tool for archiving DokuWiki"
 authors = ["yzqzss <yzqzss@yandex.com>"]
 license = "GPL-3.0"
