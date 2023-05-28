@@ -88,9 +88,32 @@ def smkdirs(parent: str = None, *child: str)-> Optional[str]:
 
 
 def standardizeUrl(url: str = ''):
-    """ Add http:// if not present """
-    if not url.startswith('http'):
+    """ 1. Add http:// if scheme is missing
+        2. Remove port :80 and :443 if http:// and https:// respectively
+        3. Convert domain to IDNA
+    """
+
+    url = url.strip()
+
+    if not url.startswith('http://') and not url.startswith('https://'):
+        print('Warning: URL scheme is missing, assuming http://')
         url = 'http://' + url
+
+    Url = urlparse(url)
+    idna_hostname = Url.hostname.encode('idna').decode('utf-8')
+
+    if Url.hostname != idna_hostname:
+        print('Converting domain to IDNA: ' + Url.hostname + ' -> ' + idna_hostname)
+        url = url.replace(Url.hostname, idna_hostname, 1)
+    
+    if Url.port == 80 and Url.scheme == 'http':
+        print('Removing port 80 from URL')
+        url = url.replace(':80', '', 1)
+    
+    if Url.port == 443 and Url.scheme == 'https':
+        print('Removing port 443 from URL')
+        url = url.replace(':443', '', 1)
+
     return url
 
 
@@ -118,10 +141,11 @@ def buildBaseUrl(url: str = '') -> str:
     return baseUrl
 
 
-def url2prefix(url):
+def url2prefix(url: str):
     """Convert URL to a valid prefix filename."""
 
-    # use request to transform prefix into a valid filename
+    url = url.strip()
+    url = standardizeUrl(url)
 
     r = urlparse(url)
     # prefix = r.netloc + r.path
