@@ -7,6 +7,7 @@ from dokuWikiDumper.dump.content.titles import getTitles
 
 from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.config import running_config
 
 HTML_DIR = 'html/'
 HTML_PAGR_DIR = HTML_DIR + 'pages/'
@@ -67,7 +68,7 @@ def dump_HTML(doku_url, dumpDir,
             (threading.active_count() - 1), end='\r')
 
 def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.Session, current_only: bool = False):
-    r = session.get(doku_url, params={'do': 'export_xhtml', 'id': title})
+    r = session.get(doku_url, params={'do': running_config.export_xhtml_action, 'id': title})
     # export_html is a alias of export_xhtml, but not exist in older versions of dokuwiki
     r.raise_for_status()
     if r.text is None or r.text == '':
@@ -91,7 +92,7 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                r = session.get(doku_url, params={'do': 'export_xhtml', 'id': title, 'rev': rev['id']})
+                r = session.get(doku_url, params={'do': running_config.export_xhtml_action, 'id': title, 'rev': rev['id']})
                 r.raise_for_status()
                 if r.text is None or r.text == '':
                     raise Exception(f'Empty response (r.text)')
