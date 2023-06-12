@@ -11,6 +11,8 @@ import requests
 
 from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.util import uopen
+from dokuWikiDumper.utils.config import running_config
+
 
 INFO_FILEPATH = 'dumpMeta/info.json'
 HOMEPAGE_FILEPATH = 'dumpMeta/index.html'
@@ -45,7 +47,7 @@ def update_info_json(dumpDir: str, info: dict):
 def get_html_lang(html: Union[bytes, str]) -> Optional[str]:
     '''Returns the language of the html document.'''
 
-    soup = BeautifulSoup(html, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(html, running_config.html_parser)
     # <html lang="en" dir="ltr" class="no-js">
     html_tag = soup.html
     
@@ -64,7 +66,7 @@ def get_wiki_name(html: Union[bytes, str]):
 
     Tuple: (wiki_name: Optional[str], raw_title: Optional[str])'''
 
-    soup = BeautifulSoup(html, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(html, running_config.html_parser)
     try:
         raw_title = soup.title.text
     except:
@@ -93,7 +95,7 @@ def get_wiki_name(html: Union[bytes, str]):
 def get_raw_icon_href(html: Union[bytes ,str]):
     '''Returns the icon url.'''
 
-    soup = BeautifulSoup(html, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(html, running_config.html_parser)
     icon_tag = soup.find('link', rel='shortcut icon')
     icon_url = None
     if isinstance(icon_tag, Tag):

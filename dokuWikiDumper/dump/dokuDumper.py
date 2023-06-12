@@ -27,7 +27,7 @@ from dokuWikiDumper.dump.html import dump_HTML
 from dokuWikiDumper.dump.info import update_info
 from dokuWikiDumper.dump.media import dumpMedia
 from dokuWikiDumper.dump.pdf import dump_PDF
-from dokuWikiDumper.utils.config import update_config
+from dokuWikiDumper.utils.config import update_config, running_config
 from dokuWikiDumper.utils.patch import SessionMonkeyPatch
 from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
 from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
@@ -75,6 +75,9 @@ def getArgumentParser():
                         '[default: False]', dest='ignore_disposition_header_missing')
     parser.add_argument('--trim-php-warnings', action='store_true', dest='trim_php_warnings',
                         help='Trim PHP warnings from requests.Response.text')
+
+    parser.add_argument('--export-xhtml-action', type=str, choices=['export_html', 'export_xhtml'], dest='export_xhtml_action',
+                        help='HTML export action [default: export_xhtml]', default='export_xhtml')
 
     parser.add_argument('--delay', help='Delay between requests [default: 0.0]', type=float, default=0.0)
     parser.add_argument('--retry', help='Maximum number of retries [default: 5]', type=int, default=5)
@@ -144,11 +147,13 @@ def checkArgs(args):
         from bs4 import BeautifulSoup, FeatureNotFound
         try:
             BeautifulSoup("", args.parser)
-            os.environ['htmlparser']=args.parser
+            running_config.html_parser = args.parser
         except FeatureNotFound:
             print("Parser %s not found. Please install first following "
                   "https://www.crummy.com/software/BeautifulSoup/bs4/doc/#installing-a-parser"%(args.parser))
             return False
+    if args.export_xhtml_action:
+        running_config.export_xhtml_action = args.export_xhtml_action
     return True
 
 

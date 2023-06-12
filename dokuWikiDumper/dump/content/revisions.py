@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ContentTypeHeaderNotTextPlain, DispositionHeaderMissingError, HTTPStatusError
 from dokuWikiDumper.utils.util import check_int, print_with_lock as print, smkdirs, uopen
+from dokuWikiDumper.utils.config import running_config
 
 
 # args must be same as getSourceEdit(), even if not used
@@ -35,7 +36,7 @@ def getSourceEdit(url, title, rev='', session: requests.Session = None,
     """Export the raw source of a page by scraping the edit box content. Yuck."""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
-    soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(r.text, running_config.html_parser)
     source = None
     try:
         source = ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
@@ -75,7 +76,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
     # if select_revs:
     if False:  # disabled, it's not stable.
         r = session.get(doku_url, params={'id': title, 'do': 'diff'})
-        soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
+        soup = BeautifulSoup(r.text, running_config.html_parser)
         select = soup.find(
             'select', {
                 'class': 'quickselect', 'name': 'rev2[1]'})
@@ -102,7 +103,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
                 'do': 'revisions',
                 'first': continue_index})
 
-        soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
+        soup = BeautifulSoup(r.text, running_config.html_parser)
 
         try:
             lis = soup.find('form', {'id': 'page__revisions'}).find(

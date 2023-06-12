@@ -13,6 +13,8 @@ from .revisions import getRevisions, getSourceEdit, getSourceExport, save_page_c
 from .titles import getTitles
 from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.config import running_config
+
 
 
 sub_thread_error = None
@@ -45,14 +47,14 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         time.sleep(3)
         getSource = getSourceEdit
 
-    soup = BeautifulSoup(r2.text, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(r2.text, running_config.html_parser)
     hidden_rev = soup.findAll(
         'input', {
             'type': 'hidden', 'name': 'rev', 'value': True})
     use_hidden_rev = hidden_rev and hidden_rev[0]['value']
     # TODO: what the `use_hidden_rev` is for?
 
-    soup = BeautifulSoup(r3.text, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(r3.text, running_config.html_parser)
     select_revs = soup.findAll(
         'select', {
             'class': 'quickselect', 'name': 'rev2[0]'})

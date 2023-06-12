@@ -1,7 +1,9 @@
 import datetime
 import json
 import os
-from dokuWikiDumper.utils.util import print_with_lock as print
+from dataclasses import dataclass
+
+from dokuWikiDumper.utils.util import Singleton, print_with_lock as print
 from dokuWikiDumper.utils.util import uopen
 
 CONFIG_FILEPATH = 'dumpMeta/config.json'
@@ -24,3 +26,10 @@ def get_config(dumpDir: str) -> dict:
             return _config
 
     return {}
+
+
+@dataclass
+class _Dumper_running_config(metaclass = Singleton):
+    html_parser: str = 'lxml'
+    export_xhtml_action: str = 'export_xhtml' # 'export_xhtml' or 'export_raw'
+running_config = _Dumper_running_config()

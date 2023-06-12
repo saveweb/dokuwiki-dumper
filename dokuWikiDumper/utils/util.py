@@ -265,3 +265,11 @@ def trim_PHP_warnings(html_or_text: str, strict: bool = False) -> str:
                 "Please feedback if you found some warnings are not removed.[/yellow]")
 
     return new_text
+
+
+class Singleton(type):
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]

@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 from dokuWikiDumper.exceptions import ActionIndexDisabled
 from dokuWikiDumper.utils.util import print_with_lock as print
-
+from dokuWikiDumper.utils.config import running_config
 
 def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
     """Get titles given a doku.php URL and an (optional) namespace
@@ -51,7 +51,7 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
     
     assert useOldMethod is False
     r = session.post(ajax, data=params) if r is None else r # reuse the previous Response if possible
-    soup = BeautifulSoup(r.text, os.environ.get('htmlparser'))
+    soup = BeautifulSoup(r.text, running_config.html_parser)
     for a in soup.findAll('a', href=True):
         if a.has_attr('title'):
             title = a['title']
@@ -80,7 +80,7 @@ def getTitlesOld(url, ns=None, ancient=False, session:requests.Session=None):
     depth = len(ns.split(':'))
 
     r = session.get(url, params=params)
-    soup = BeautifulSoup(r.text, os.environ.get('htmlparser')).findAll('ul', {'class': 'idx'})[0]
+    soup = BeautifulSoup(r.text, running_config.html_parser).findAll('ul', {'class': 'idx'})[0]
     attr = 'text' if ancient else 'title'
 
     if ns:

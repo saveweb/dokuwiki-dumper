@@ -9,6 +9,8 @@ import requests
 
 from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.config import running_config
+
 
 
 sub_thread_error = None
@@ -32,13 +34,13 @@ def getFiles(url, ns: str = '',  dumpDir: str = '', session: requests.Session=No
             'call': 'medialist',
             'ns': ns,
             'do': 'media'
-        }).text, os.environ.get('htmlparser'))
+        }).text, running_config.html_parser)
     medians = BeautifulSoup(
         session.post(ajax, {
             'call': 'medians',
             'ns': ns,
             'do': 'media'
-        }).text, os.environ.get('htmlparser'))
+        }).text, running_config.html_parser)
     imagelinks = medialist.findAll(
         'a',
         href=lambda x: x and re.findall(
