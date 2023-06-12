@@ -2,6 +2,13 @@ import os
 import sys
 import importlib.util
 
+class AlreadyRunningError(Exception):
+    def __init__(self, message: str=""):
+        self.message = message
+        super().__init__(self.message)
+    def __str__(self):
+        return self.message
+
 
 LOCK_FILENAME = 'dumping.lock'
 
@@ -13,7 +20,8 @@ class DumpLock_Basic:
         if os.path.exists(self.lock_file):
             with open(self.lock_file, 'r', encoding='utf-8') as f:
                 print(f.read())
-            sys.exit("Another instance is already running, quitting...")
+            print("Another instance is already running.")
+            raise AlreadyRunningError('Another instance is already running.')
         else:
             with open(self.lock_file, 'w', encoding='utf-8') as f:
                 f.write(f'PID: {os.getpid()}: Running')
@@ -51,8 +59,8 @@ class DumpLock_Fcntl():
             self.fcntl.lockf(self.lock_file_fd, self.fcntl.LOCK_EX | self.fcntl.LOCK_NB)
             print("Acquired lock, continuing.")
         except IOError:
-            print("Another instance is already running, quitting.")
-            sys.exit(-1)
+            raise AlreadyRunningError("Another instance is already running.")
+            
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.lock_file_fd is None:
