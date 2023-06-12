@@ -1,1 +1,2 @@
-UPLOADER_VERSION = "0.1.36"
+from dokuWikiDumper.__version__ import DUMPER_VERSION
+UPLOADER_VERSION = DUMPER_VERSION
