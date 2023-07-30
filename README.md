@@ -180,6 +180,8 @@ Import `media` dir if you need the media files.
 - [DokuWiki changelog](https://www.dokuwiki.org/changelog)
 - [DokuWiki source code](https://github.com/splitbrain/dokuwiki)
 
+- [DokuWiki - ArchiveTeam Wiki](https://wiki.archiveteam.org/index.php/DokuWiki)
+
 ### Other tools
 
 - [MediaWiki Scraper](https://github.com/mediawiki-client-tools/mediawiki-scraper) (aka `wikiteam3`), a tool for archiving MediaWiki, forked from [WikiTeam](https://github.com/wikiteam/wikiteam/) and has been rewritten in Python 3.
@@ -193,4 +195,4 @@ GPLv3
 
 This tool is based on an unmerged PR (_8 years ago!_) of [WikiTeam](https://github.com/WikiTeam/wikiteam/): [DokuWiki dump alpha](https://github.com/WikiTeam/wikiteam/pull/243) by [@PiRSquared17](https://github.com/PiRSquared17).
 
-I ([@yzqzss](https://github.com/yzqzss)) have rewritten the code in Python 3 and added some features, also fixed some bugs.
+I ([@yzqzss](https://github.com/yzqzss)) have rewritten the code in Python 3 and added ~~some features, also fixed~~ some bugs.
