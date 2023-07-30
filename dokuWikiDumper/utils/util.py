@@ -5,9 +5,10 @@ import sys
 import threading
 import time
 from typing import *
-from urllib.parse import urlparse, urljoin
+from urllib.parse import unquote, urlparse, urljoin
 from rich import print as rprint
 import requests
+from slugify import slugify
 
 USE_RICH = True
 
@@ -87,13 +88,16 @@ def smkdirs(parent: str = None, *child: str)-> Optional[str]:
     return None
 
 
-def standardizeUrl(url: str = ''):
-    """ 1. Add http:// if scheme is missing
-        2. Remove port :80 and :443 if http:// and https:// respectively
-        3. Convert domain to IDNA
+def standardizeUrl(url: str):
+    """ 1. unquote url
+        2. Add http:// if scheme is missing
+        3. Remove port :80 and :443 if http:// and https:// respectively
+        4. Convert domain to IDNA
     """
+    # TODO: make step 1,2,4 optional and reversible
 
     url = url.strip()
+    url = unquote(url, encoding='utf-8', errors='strict')
 
     if not url.startswith('http://') and not url.startswith('https://'):
         print('Warning: URL scheme is missing, assuming http://')
@@ -141,31 +145,56 @@ def buildBaseUrl(url: str = '') -> str:
     return baseUrl
 
 
-def url2prefix(url: str):
+def url2prefix(url: str, ascii_slugify: bool = True):
     """Convert URL to a valid prefix filename."""
 
     url = url.strip()
+    if '\n' in url or '\r' in url:
+        raise ValueError('URL contains newline')
     url = standardizeUrl(url)
 
     r = urlparse(url)
-    # prefix = r.netloc + r.path
-    if r.path and r.path != '/' and not r.path.endswith('/'):
+
+    r_path = r.path
+
+    if r.path.endswith('/'):
+        # remove last slash
+        # "/abc/123/" -> "/abc/123"
+        # "/" -> ""
+        r_path = r.path[:-1]
+    else: # not r.path.endswith('/')
         # truncate to last slash
-        prefix = r.netloc + r.path[:r.path.rfind('/')]
-    else:
-        prefix = r.netloc + r.path
-    prefix = prefix.lower()
-    prefix = re.sub(r"(/[a-z0-9]+\.php)", "", prefix)
-    prefix = prefix.strip('/')
-    prefix = re.sub(r"/", "_", prefix)
+        # "/abc/123/edf" -> "/abc/123"
+        r_path =  r.path[:r.path.rfind('/')]
 
-    prefix = prefix.replace(':', '_') # port
-    prefix = prefix.replace('~', '') # remove tilde
+    # remove "/any.php" suffix
+    r_path = re.sub(r"(/[^/]+\.php)", "", r_path)
+    # remove tilde
+    r_path = r_path.replace('~', '')
+    # sulgify
+    _r_paths = r_path.split('/')
+    if ascii_slugify:
+        _r_paths = [slugify(p, separator='_', allow_unicode=False) for p in _r_paths]
+    r_path = '_'.join(_r_paths)
 
-    # domain = re.sub(r"\.", "", domain)
-    # domain = re.sub(r"[^A-Za-z0-9]", "_", domain)
+    # replace port with underscore
+    r_netloc = r.netloc.replace(':', '_')
+
+    # lower case
+    prefix = (r_netloc + r_path).lower()
+    assert prefix == prefix.strip('_'), 'prefix contains leading or trailing underscore, please report this bug.'
 
     return prefix
+
+def test_url2prefix():
+    # TODO: add test
+    pass
+    tests_slugify = {
+        'https://苟.com:123/~11.22利.国3/家-！!🌚/asd?das#jbcdbd':
+        'xn--ui1a.com_123_11_22li_guo_3_jia'
+    }
+    for url, prefix in tests_slugify.items():
+        assert url2prefix(url, ascii_slugify=True) == prefix
 
 
 def loadTitles(titlesFilePath) -> Optional[List[str]]:

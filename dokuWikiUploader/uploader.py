@@ -53,7 +53,7 @@ def read_ia_keys(keysfile):
     return access_key, secret_key
 
 
-def upload(args={}):
+def upload(args: dict):
     dump_dir = args.dump_dir
     path7z = args.path7z # '/usr/bin/7z'
     access_key, secret_key = read_ia_keys(os.path.expanduser(args.keysfile))
@@ -68,7 +68,7 @@ def upload(args={}):
 
 
     wikiname = (info.get(INFO_WIKI_NAME) if info.get(INFO_WIKI_NAME) else info.get(INFO_RAW_TITLE))
-    wikiname = wikiname if info.get(INFO_RAW_TITLE) else url2prefix(info.get(INFO_DOKU_URL))
+    wikiname = wikiname if info.get(INFO_RAW_TITLE) else url2prefix(info.get(INFO_DOKU_URL), ascii_slugify=False)
     wikiname = wikiname if wikiname else 'Unknown'
     if wikiname == 'start':
         # some sites use 'wikiname [pagetitle]' as the title instead of 'pagetitle [wikiname]'.
@@ -119,7 +119,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
     if wikiname and wikiname not in keywords_full:
         keywords_full.append(wikiname)
     if info.get(INFO_DOKU_URL):
-        keywords_full.append(url2prefix(info.get(INFO_DOKU_URL)))
+        keywords_full.append(url2prefix(info.get(INFO_DOKU_URL)), ascii_slugify=False)
 
 
     # Item metadata
@@ -218,7 +218,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
             new_md.update({"last-updated-date": time.strftime("%Y-%m-%d")})
         
         _subject_full = "; ".join(keywords_full)
-        _subject_without_wikiname = "; ".join(keywords_init + [url2prefix(info.get(INFO_DOKU_URL))])
+        _subject_without_wikiname = "; ".join(keywords_init + [url2prefix(info.get(INFO_DOKU_URL), ascii_slugify=False)])
         # IA's subject field has a 255 bytes length limit, so we need to truncate it.
         # wikiname may be too long, remove it first.
         subject_final = _subject_full if len(_subject_full.encode("utf-8")) <= 255 else _subject_without_wikiname
