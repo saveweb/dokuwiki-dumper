@@ -292,3 +292,5 @@ def dump():
             print('dokuWikiUploader: --upload: Done')
         else:
             print('dokuWikiUploader: --upload: [red] Failed [/red]!!!')
+            raise RuntimeError('dokuWikiUploader: --upload: Failed!!!')
+
