@@ -119,7 +119,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
     if wikiname and wikiname not in keywords_full:
         keywords_full.append(wikiname)
     if info.get(INFO_DOKU_URL):
-        keywords_full.append(url2prefix(info.get(INFO_DOKU_URL)), ascii_slugify=False)
+        keywords_full.append(url2prefix(info.get(INFO_DOKU_URL), ascii_slugify=False))
 
 
     # Item metadata
