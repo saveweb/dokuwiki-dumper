@@ -245,6 +245,8 @@ DATE_FORMATS = ["%Y-%m-%d %H:%M",
                 "%d/%m/%Y alle %H:%M",
 
                 "Le %d/%m/%Y, %H:%M",
+
+                "%H:%M %d/%m/%Y", # https://lsw.wiki/
                 ]
 
 # Try each date format until one works.
