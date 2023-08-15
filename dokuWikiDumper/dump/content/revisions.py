@@ -247,6 +247,10 @@ DATE_FORMATS = ["%Y-%m-%d %H:%M",
                 "Le %d/%m/%Y, %H:%M",
 
                 "%H:%M %d/%m/%Y", # https://lsw.wiki/
+
+                "%d. %m. %Y. %H:%M", # http://www.ffzg.unizg.hr
+
+                "Y-m-d H:i", # http://www.gabordenesklub.hu, date and time not displayed correctly
                 ]
 
 # Try each date format until one works.
