@@ -184,8 +184,10 @@ Import `media` dir if you need the media files.
 
 ### Other tools
 
-- [MediaWiki Scraper](https://github.com/mediawiki-client-tools/mediawiki-scraper) (aka `wikiteam3`), a tool for archiving MediaWiki, forked from [WikiTeam](https://github.com/wikiteam/wikiteam/) and has been rewritten in Python 3.
-- [WikiTeam](https://github.com/wikiteam/wikiteam/), a tool for archiving MediaWiki, written in Python 2.
+- [wikiteam/WikiTeam](https://github.com/wikiteam/wikiteam/), a tool for archiving MediaWiki, written in Python 2 that you won't want to use nowadays. :(
+- [mediawiki-client-tools/MediaWiki Scraper](https://github.com/mediawiki-client-tools/mediawiki-scraper) (aka `wikiteam3`), a tool for archiving MediaWiki, forked from [WikiTeam](https://github.com/wikiteam/wikiteam/) and has been rewritten in Python 3. (Lack of code writers and reviewers, STWP no longer maintains this repo.)
+- [saveweb/WikiTeam3](https://github.com/saveweb/wikiteam3) forked from MediaWiki Scraper, maintained by STWP. :)
+- [DigitalDwagon/WikiBot](https://github.com/DigitalDwagon/WikiBot) a Discord and IRC bot to run the dokuWikiDumper and wikiteam3 in the background.
 
 ## License
 
