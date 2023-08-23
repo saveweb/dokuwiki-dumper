@@ -2,7 +2,17 @@
 
 > A tool for archiving DokuWiki.
 
-Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because of it denys many special characters in filename.
+Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because it denies many special characters in the filename.
+
+# For webmaster
+
+If you don’t want your wiki to be archived, add the following to your `domain/robots.txt`:
+
+```robots.txt
+User-agent: dokuWikiDumper
+Disallow: /
+```
+
 
 ## Requirements
 
