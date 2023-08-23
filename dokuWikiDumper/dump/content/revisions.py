@@ -232,32 +232,25 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
     return revs
 
 
-DATE_FORMATS = ["%Y-%m-%d %H:%M",
+DATE_FORMATS = ["%Y-%m-%d %H:%M", # <https://www.dokuwiki.org/dokuwiki?do=revisions>
+                "%Y-%m-%d", # <http://neff.family.name/unwiki/doku.php>
                 "%Y/%m/%d %H:%M",
-                "%d.%m.%Y %H:%M",
-                "%d/%m/%Y %H:%M",
-                
                 "%Y-%m-%d %H:%M:%S",
                 "%Y/%m/%d %H:%M:%S",
+                
+                "%d.%m.%Y %H:%M",
+                "%d/%m/%Y %H:%M", # <https://eolienne.f4jr.org/?do=revisions>
                 "%d.%m.%Y %H:%M:%S",
-                "%d/%m/%Y %H:%M:%S",
+                "%d/%m/%Y %H:%M:%S", # <https://aezoo.compute.dtu.dk/doku.php>
 
-                "%d/%m/%Y alle %H:%M",
+                "%d/%m/%Y alle %H:%M", # <http://didawiki.cli.di.unipi.it/> # 01/03/2007 alle 14:20 (16 anni fa)
 
-                "Le %d/%m/%Y, %H:%M",
+                "Le %d/%m/%Y, %H:%M", # <https://doc.ubuntu-fr.org> # Le 23/09/2020, 17:01
 
-                "%H:%M %d/%m/%Y", # https://lsw.wiki/
+                "%H:%M %d/%m/%Y", # <https://lsw.wiki/>
+                "%d. %m. %Y (%H:%M)", # <https://www.hks.re/wiki/>
                 ]
-
-# Try each date format until one works.
-# Example below:
-# %Y-%m-%d %H:%M | <https://www.dokuwiki.org/dokuwiki?do=revisions> # 2019/01/01 00:00
-# TODO: %Y-%m-%d %H:%M
-# TODO: %Y/%m/%d %H:%M
-# %d/%m/%Y %H:%M | <https://eolienne.f4jr.org/?do=revisions> #  28/02/2013 12:12
-# %d/%m/%Y %H:%M:%S | <https://aezoo.compute.dtu.dk/doku.php> # 17/03/2014 12:03:33
-# "%d/%m/%Y alle %H:%M", # <http://didawiki.cli.di.unipi.it/> # 01/03/2007 alle 14:20 (16 anni fa)
-# "Le %d/%m/%Y, %H:%M", # <https://doc.ubuntu-fr.org> # Le 23/09/2020, 17:01
+""" Why there are so many date formats in the world? :( """
 
 def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
     changes_file = dumpDir + '/meta/' + title.replace(':', '/') + '.changes'
@@ -290,7 +283,12 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
             for date_format in DATE_FORMATS:
                 try:
                     date = datetime.strptime(
-                        rev['date'].split('(')[0].strip(),# remove " (x days ago)" in f"{date_format} (x days ago)"
+                        # remove " (x days ago)" in f"{date_format} (x days ago)" if date_format not contain '('
+                        rev['date'].split('(')[0].strip(),
+                        date_format
+                    ) if '(' not in date_format else datetime.strptime(
+                        # date_format contain '('
+                        rev['date'].strip(),
                         date_format
                     )
                     rev_id = str(int(time.mktime(date.utctimetuple())))
