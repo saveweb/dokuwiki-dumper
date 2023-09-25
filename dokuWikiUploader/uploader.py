@@ -263,10 +263,16 @@ def compress(dir, bin7z: str, level: int = 5):
     if os.path.exists(dir_7z):
         print(f"File {dir_7z} already exists. Skip compressing.")
         return dir_7z
-    
+
+    cmds = [bin7z, "a", "-t7z", "-m0=lzma2", f"-mx={level}", "-scsUTF-8",
+            "-md=64m", "-ms=off", dir_7z+".tmp", dir]
+    if level == 0:
+        cmds = [bin7z, "a", "-t7z", f"-mx={level}", "-scsUTF-8",
+                "-ms=off", dir_7z+".tmp", dir]
+
+
     subprocess.run(
-        [bin7z, "a", "-t7z", "-m0=lzma2", f"-mx={level}", "-scsUTF-8",
-            "-md=64m", "-ms=off", dir_7z+".tmp", dir],
+        cmds,
         check=True,
     )
     # move tmp file to final file
