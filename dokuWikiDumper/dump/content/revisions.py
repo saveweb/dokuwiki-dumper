@@ -234,6 +234,7 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
 
 DATE_FORMATS = ["%Y-%m-%d %H:%M", # <https://www.dokuwiki.org/dokuwiki?do=revisions>
                 "%Y-%m-%d", # <http://neff.family.name/unwiki/doku.php>
+                "%Y/%m/%d", # <https://tjgrant.com/wiki/news?do=revisions>
                 "%Y/%m/%d %H:%M",
                 "%Y-%m-%d %H:%M:%S",
                 "%Y/%m/%d %H:%M:%S",
@@ -293,7 +294,7 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
                     )
                     rev_id = str(int(time.mktime(date.utctimetuple())))
                     break
-                except:
+                except Exception:
                     rev_id = None
                     
             assert rev_id is not None, 'Cannot parse date: %s' % rev['date']
