@@ -44,15 +44,22 @@ def print_with_lock(*args, **kwargs):
 
 def avoidSites(url: str, session: requests.Session):
     #check robots.txt
-    r = requests.get(
+    exit_ = False
+    try:
         # Don't use the session.get() method here, since we want to avoid the session's retry logic
-        urlparse(url).scheme + '://' + urlparse(url).netloc + '/robots.txt',
-        cookies=session.cookies, headers=session.headers, verify=session.verify, proxies=session.proxies
+        r = requests.get(
+            urlparse(url).scheme + '://' + urlparse(url).netloc + '/robots.txt',
+            cookies=session.cookies, headers=session.headers, verify=session.verify, proxies=session.proxies
         )
-    if r.status_code == 200:
-        if 'User-agent: ia_archiver\nDisallow: /' in r.text or f'User-agent: dokuWikiDumper\nDisallow: /' in r.text:
-            print('This wiki not allow dokuWikiDumper or IA to crawl.')
-            sys.exit(1)
+        if r.status_code == 200:
+            if 'user-agent: ia_archiver\ndisallow: /' in r.text.lower() or 'user-agent: dokuwikidumper\ndisallow: /' in r.text.lower():
+                print('This wiki not allow dokuWikiDumper or IA to crawl.')
+                exit_ = True
+    except Exception as e:
+        print('Error: cannot get robots.txt', e)        
+    
+    if exit_:
+        sys.exit(0)
 
     site = urlparse(url).netloc
     avoidList = ['www.dokuwiki.org']  # TODO: Add more sites
