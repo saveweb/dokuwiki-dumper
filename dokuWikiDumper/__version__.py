@@ -1,4 +1,4 @@
-DUMPER_VERSION = '0.1.42'
+DUMPER_VERSION = '0.1.43'
 
 from dokuWikiDumper.exceptions import VersionOutdatedError
 
