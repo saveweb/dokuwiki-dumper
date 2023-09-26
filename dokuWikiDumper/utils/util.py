@@ -4,7 +4,7 @@ import re
 import sys
 import threading
 import time
-from typing import *
+from typing import Optional, List
 from urllib.parse import unquote, urlparse, urljoin
 from rich import print as rprint
 import requests
@@ -23,7 +23,7 @@ def check_int(s: str = ''):
     try:
         int(s)
         return s
-    except:
+    except Exception:
         return None
 
 def print_with_lock(*args, **kwargs):
@@ -35,7 +35,7 @@ def print_with_lock(*args, **kwargs):
             rich_args = [re.sub(r'\[\[', '\"', str(arg)) for arg in rich_args]
             rich_args = [re.sub(r'\]\]', '\"', str(arg)) for arg in rich_args]
             rprint(*rich_args, **kwargs)
-        except: # fallback to builtins.print
+        except Exception: # fallback to builtins.print
             builtins.print(*args, **kwargs)
     else:
         builtins.print(*args, **kwargs)

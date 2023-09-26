@@ -18,6 +18,7 @@ import time
 
 import requests
 from dokuWikiDumper.utils.dump_lock import DumpLock
+from dokuWikiDumper.utils.ia_checker import any_recent_ia_item_exists
 # import gzip, 7z
 from dokuWikiDumper.utils.util import print_with_lock as print
 
@@ -97,6 +98,7 @@ def getArgumentParser():
                         ' (only works with --auto)')
     parser.add_argument("-g", "--uploader-arg", dest="uploader_args", action='append', default=[],
                         help="Arguments for uploader.")
+    parser.add_argument('--force', action='store_true', help='To dump even if a recent dump exists on IA')
 
     return parser
 
@@ -199,6 +201,12 @@ def dump():
     doku_url = getDokuUrl(std_url, session=session)
 
     avoidSites(doku_url, session=session)
+
+    if not args.force:
+        print("Searching for recent dumps on IA...")
+        if any_recent_ia_item_exists(ori_url=doku_url, days=365):
+            print("A dump of this wiki was uploaded to IA in the last 365 days. Aborting.")
+            sys.exit(88)
 
     print('Init cookies:', session.cookies.get_dict())
     if args.username:
