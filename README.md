@@ -101,7 +101,7 @@ options:
   --username USERNAME   login: username
   --password PASSWORD   login: password
   --cookies COOKIES     cookies file
-  --auto                dump: content+media+html, threads=5, ignore-action-disable-edit. (threads is overridable)
+  --auto                dump: content+media+html, threads=3, ignore-action-disable-edit. (threads is overridable)
   -u, --upload          Upload wikidump to Internet Archive after successfully dumped (only works with --auto)
   -g UPLOADER_ARGS, --uploader-arg UPLOADER_ARGS
                         Arguments for uploader.
@@ -124,7 +124,7 @@ dokuWikiDumper https://example.com/wiki/ --auto
 which is equivalent to
 
 ```bash
-dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 5 --ignore-action-disabled-edit
+dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 3 --ignore-action-disabled-edit
 ```
 
 > Highly recommend using `--username` and `--password` to login (or using `--cookies`), because some sites may disable anonymous users to access some pages or check the raw wikitext.

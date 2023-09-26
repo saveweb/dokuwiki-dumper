@@ -92,7 +92,7 @@ def getArgumentParser():
     # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     parser.add_argument('--cookies', help='cookies file')
     parser.add_argument('--auto', action='store_true', 
-                        help='dump: content+media+html, threads=5, ignore-action-disable-edit. (threads is overridable)')
+                        help='dump: content+media+html, threads=3, ignore-action-disable-edit. (threads is overridable)')
     parser.add_argument('-u', '--upload', action='store_true', 
                         help='Upload wikidump to Internet Archive after successfully dumped'
                         ' (only works with --auto)')
