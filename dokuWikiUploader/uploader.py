@@ -128,7 +128,7 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
         "collection": collection,
         "title": "Wiki - " + wikiname,
         "description": description_without_URL, # without URL, to bypass IA's anti-spam.
-        "last-updated-date": time.strftime("%Y-%m-%d"),
+        "last-updated-date": time.strftime("%Y-%m-%d", time.gmtime()),
         "subject": "; ".join(
             keywords_init
         ),  # Keywords should be separated by ; but it doesn't matter much; the alternative is to set one per field with subject[0], subject[1], ...
@@ -213,9 +213,9 @@ Dumped with DokuWiki-Dumper v{config.get('dokuWikiDumper_version')}, and uploade
             print("    (add URL back: %s )..." % info.get(INFO_DOKU_URL))
             new_md.update({"description": description_with_URL})
 
-        if item.metadata.get("last-updated-date") != time.strftime("%Y-%m-%d"):
-            print("    (update last-updated-date to %s )..." % time.strftime("%Y-%m-%d"))
-            new_md.update({"last-updated-date": time.strftime("%Y-%m-%d")})
+        if item.metadata.get("last-updated-date") != time.strftime("%Y-%m-%d", time.gmtime()):
+            print("    (update last-updated-date to %s )..." % time.strftime("%Y-%m-%d", time.gmtime()))
+            new_md.update({"last-updated-date": time.strftime("%Y-%m-%d", time.gmtime())})
         
         _subject_full = "; ".join(keywords_full)
         _subject_without_wikiname = "; ".join(keywords_init + [url2prefix(info.get(INFO_DOKU_URL), ascii_slugify=False)])

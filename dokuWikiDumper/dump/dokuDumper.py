@@ -218,7 +218,7 @@ def dump():
 
     base_url = buildBaseUrl(doku_url)
     dumpDir = url2prefix(doku_url) + '-' + \
-        time.strftime("%Y%m%d") if not args.path else args.path.rstrip('/')
+        time.strftime("%Y%m%d", time.gmtime()) if not args.path else args.path.rstrip('/')
     if args.no_resume:
         if os.path.exists(dumpDir):
             print(
