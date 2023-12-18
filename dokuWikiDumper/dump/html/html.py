@@ -104,7 +104,8 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
                 print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], title))
             except requests.HTTPError as e:
                 print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, e))
-    
+        else:
+            print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, 'Rev id not found (please check ?do=revisions of this page)'))
 
     save_page_changes(dumpDir=dumpDir, child_path=child_path, title=title, 
                        revs=revs, msg_header=msg_header)

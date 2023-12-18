@@ -298,6 +298,8 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
                     rev_id = None
                     
             assert rev_id is not None, 'Cannot parse date: %s' % rev['date']
+            assert isinstance(rev_id, str), 'rev_id must be str, not %s' % type(rev_id)
+
             # if rev_id is not unique, plus 1 to it until it is.
             while rev_id in revidOfPage:
                 rev_id = str(int(rev_id) + 1)

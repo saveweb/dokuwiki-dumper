@@ -153,6 +153,9 @@ def dump_page(dumpDir: str,
             except DispositionHeaderMissingError:
                 print(msg_header, '    Revision %s of [[%s]] is empty. (probably deleted)' % (
                     rev['id'], title))
+        else:
+            print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, 'Rev id not found (please check ?do=revisions of this page)'))
+
 
             # time.sleep(1.5)
 
