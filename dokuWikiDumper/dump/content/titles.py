@@ -55,6 +55,10 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
     for a in soup.findAll('a', href=True):
         if a.has_attr('title'):
             title = a['title']
+        elif a.has_attr('data-wiki-id'): 
+            # for https://wiki.eternal-twin.net/start?do=index
+            # (log: https://cdn.digitaldragon.dev/wikibot/jobs/4efda8bd-3bd2-4f59-81ef-8e37cf574431/log.txt)
+            title = a['data-wiki-id']
         else:
             query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
             title = (query['idx' if 'idx' in query else 'id'])[0]
