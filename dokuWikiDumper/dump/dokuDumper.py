@@ -89,7 +89,7 @@ def getArgumentParser():
 
     parser.add_argument('--username', help='login: username')
     parser.add_argument('--password', help='login: password')
-    # parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--verbose', action='store_true', help='Verbose output')
     parser.add_argument('--cookies', help='cookies file')
     parser.add_argument('--auto', action='store_true', 
                         help='dump: content+media+html, threads=3, ignore-action-disable-edit. (threads is overridable)')
@@ -188,6 +188,18 @@ def dump():
     skip_to = args.skip_to
 
     session = createSession(retries=args.retry)
+
+    if args.verbose:
+        def print_request(r: requests.Response, *args, **kwargs):
+            # TODO: use logging
+            # print("H:", r.request.headers)
+            for _r in r.history:
+                print("Resp (history): ", _r.request.method, _r.status_code, _r.reason, _r.url)
+            print(f"Resp: {r.request.method} {r.status_code} {r.reason} {r.url}")
+            if r.raw._connection.sock:
+                print(f"Conn: {r.raw._connection.sock.getsockname()} -> {r.raw._connection.sock.getpeername()[0]}")
+        session.hooks['response'].append(print_request)
+
     if args.insecure:
         session.verify = False
         requests.packages.urllib3.disable_warnings()
