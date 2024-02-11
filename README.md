@@ -158,11 +158,7 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 3 --
 
 ## Available Backups/Dumps
 
-I made some backups for testing, you can check out the list: <https://github.com/orgs/saveweb/projects/4>.
-
-> Some wikidump has been uploaded to IA, you can check out: <https://archive.org/search?query=subject%3A"dokuWikiDumper">
->
-> If you dumped a DokuWiki and want to share it, please feel free to open an issue, I will add it to the list.
+Check out: <https://archive.org/search?query=subject%3A"dokuWikiDumper">
 
 ## How to import dump to DokuWiki
 
