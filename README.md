@@ -1,5 +1,9 @@
 # DokuWiki Dumper
 
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Farchive.org%2Fadvancedsearch.php%3Fq%3Dsubject%3AdokuWikiDumper%26rows%3D1%26page%3D1%26output%3Djson&query=%24.response.numFound&label=DokuWiki%20Dumps%40IA)
+[![PyPI version](https://badge.fury.io/py/dokuwikidumper.svg)](https://badge.fury.io/py/dokuwikidumper)
+
+
 > A tool for archiving DokuWiki.
 
 Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btrfs`. `NTFS` is not recommended because it denies many special characters in the filename.
