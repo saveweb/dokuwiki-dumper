@@ -210,7 +210,8 @@ def dump():
     session_monkey.hijack()
 
     std_url = standardizeUrl(url_input)
-    doku_url = getDokuUrl(std_url, session=session)
+    # use #force to skip 30X redirection detection
+    doku_url = getDokuUrl(std_url, session=session) if not std_url.endswith('#force') else std_url[:-len('#force')]
 
     avoidSites(doku_url, session=session)
 
