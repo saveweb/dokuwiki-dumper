@@ -24,10 +24,13 @@ def search_ia(ori_url: str, addeddate_intervals: Optional[List[str]] = None):
     ia_session = ArchiveSession()
 
     subject = 'dokuWikiDumper'
-    ori_url2 = ori_url.replace("/doku.php", "")
-    ori_url3 = ori_url.replace("/doku.php", "/")
+    ori_url = ori_url.lower() # any case
+    ori_url1 = ori_url.replace("/doku.php", "") # remove /doku.php -> ""
+    ori_url2 = ori_url.replace("/doku.php", "/") # remove /doku.php -> /
+    ori_url3 = ori_url + ('/' if not ori_url.endswith('/') else '') + 'start' # add /start
+    ori_url4 = ori_url + ('/' if not ori_url.endswith('/') else '') + 'doku.php' # add /doku.php
 
-    query = f'(subject:"{subject}" AND (originalurl:"{ori_url}" OR originalurl:"{ori_url2}" OR originalurl:"{ori_url3}"))'
+    query = f'(subject:"{subject}" AND (originalurl:"{ori_url}" OR originalurl:"{ori_url1}" OR originalurl:"{ori_url2}" OR originalurl:"{ori_url3}" OR originalurl:"{ori_url4}"))'
     if addeddate_intervals:
         query += f' AND addeddate:[{addeddate_intervals[0]} TO {addeddate_intervals[1]}]'
     search = Search(ia_session, query=query,
@@ -41,9 +44,11 @@ def search_ia(ori_url: str, addeddate_intervals: Optional[List[str]] = None):
         # 'addeddate': '2023-03-15T01:42:12Z',
         # 'subject': ['wiki', 'wikiteam', 'MediaWiki', .....]}
         if result['originalurl'].lower() in [
-            ori_url.lower(),
-            ori_url2.lower(),
-            ori_url3.lower(),
+            ori_url,
+            ori_url1,
+            ori_url2,
+            ori_url3,
+            ori_url4,
             ]:
             logger.info(f'Original URL match: {result}')
             yield result
