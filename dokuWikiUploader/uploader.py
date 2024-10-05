@@ -17,11 +17,7 @@ from dokuWikiDumper.utils.config import get_config
 from .__version__ import UPLOADER_VERSION
 
 DEFAULT_COLLECTION = 'opensource'
-TEST_COLLECTION = 'test_collection' # items here are expected to be automatically removed after 30 days. 
-# (see <https://archive.org/details/test_collection?tab=about>)
-
 USER_AGENT = 'dokuWikiUploader/' + UPLOADER_VERSION
-
 UPLOADED_MARK = 'uploaded_to_IA.mark'
 
 
@@ -291,7 +287,7 @@ def main(params=[]):
                              " [default: ~/.doku_uploader_ia_keys]")
     parser.add_argument("-p7z", "--path7z", default="7z",
                         help="Path to 7z binary. [default: 7z]")
-    parser.add_argument("-c", "--collection", default=DEFAULT_COLLECTION, choices=[DEFAULT_COLLECTION, TEST_COLLECTION, "wikiteam"],
+    parser.add_argument("-c", "--collection", default=DEFAULT_COLLECTION,
                         help="Collection to upload to. ('test_collection' for testing (auto-delete after 30 days) "
                              "[default: opensource]")
     parser.add_argument("-p", "--pack-dumpMeta", action="store_true",
