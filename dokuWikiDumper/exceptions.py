@@ -59,9 +59,28 @@ class ActionEditTextareaNotFound(Exception):
     def __str__(self):
         return "Action: edit: textarea not found for [[%s]]" % self.title
 
+
 class ActionExportHtmlDisabled(Exception):
     def __init__(self, title):
         self.title = title
 
     def __str__(self):
         return "Action: export_xhtml is disabled for [[%s]]" % self.title
+
+
+class ActionRevisionsDisabled(Exception):
+    def __init__(self, title):
+        self.title = title
+
+    def __str__(self):
+        return "Action: revisions is disabled for [[%s]]" % self.title
+
+
+class RevisionListNotFound(Exception):
+    def __init__(self, title):
+        self.title = title
+
+    def __str__(self):
+        return "Revision list not found for [[%s]]" % self.title
+
+
