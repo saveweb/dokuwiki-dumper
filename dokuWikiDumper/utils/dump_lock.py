@@ -1,5 +1,4 @@
 import os
-import sys
 import importlib.util
 
 class AlreadyRunningError(Exception):
@@ -40,16 +39,13 @@ class DumpLock_Basic:
 
 
 class DumpLock_Fcntl():
-    fcntl = None
-    try:
-        import fcntl
-    except ModuleNotFoundError:
-        pass
-
     def __init__(self, lock_dir):
-        if self.fcntl is None:
-            raise(ModuleNotFoundError("No module named 'fcntl'", name='fcntl'))
-        
+        try:
+            import fcntl
+        except ModuleNotFoundError:
+            raise
+
+        self.fcntl = fcntl
         self.lock_file = os.path.join(lock_dir, LOCK_FILENAME)
         self.lock_file_fd = None
 
