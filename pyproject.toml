@@ -23,6 +23,7 @@ lxml = "^4.9.2"
 internetarchive = "^3.5.0"
 rich = "^13.4.2"
 python-slugify = "^8.0.1"
+typing-extensions = "^4.12.2"
 
 
 [tool.poetry.dev-dependencies]
