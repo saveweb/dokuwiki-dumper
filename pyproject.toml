@@ -16,19 +16,19 @@ packages = [
 "repository" = "https://github.com/saveweb/dokuwiki-dumper/"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-requests = "^2.31.0"
+python = "^3.8.1"
+requests = "^2.32.2"
 beautifulsoup4 = "^4.11.2"
-lxml = "^4.9.2"
-internetarchive = "^3.5.0"
+lxml = "^5.2.0"
+internetarchive = "^5.0.3"
 rich = "^13.4.2"
 python-slugify = "^8.0.1"
 typing-extensions = "^4.12.2"
 
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
-flake8 = "^4.0.1"
+pytest = "^8.3.0"
+flake8 = "^7.0.0"
 
 [tool.poetry.scripts]
 dokuWikiDumper = "dokuWikiDumper:main"
