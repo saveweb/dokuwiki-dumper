@@ -8,11 +8,10 @@ import time
 import requests
 import urllib3
 
-from dokuWikiDumper.__version__ import DUMPER_VERSION
 from dokuWikiDumper.utils.util import uopen
 
 
-def createSession(retries=5):
+def createSession(retries=5, user_agent=None) -> requests.Session:
     session = requests.Session()
     try:
         from requests.adapters import HTTPAdapter
@@ -68,8 +67,7 @@ def createSession(retries=5):
     except:
         pass
 
-    session.headers.update({'User-Agent': 'dokuWikiDumper/' +
-                           DUMPER_VERSION + ' (https://github.com/saveweb/dokuwiki-dumper)'})
+    session.headers.update({'User-Agent': user_agent})
     print('User-Agent:',session.headers.get('User-Agent'))
 
     return session

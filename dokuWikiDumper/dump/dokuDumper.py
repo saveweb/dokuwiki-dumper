@@ -99,6 +99,9 @@ def getArgumentParser():
     parser.add_argument("-g", "--uploader-arg", dest="uploader_args", action='append', default=[],
                         help="Arguments for uploader.")
     parser.add_argument('--force', action='store_true', help='To dump even if a recent dump exists on IA')
+    parser.add_argument('--user-agent', dest="user_agent", type=str,
+                        default='dokuWikiDumper/' + DUMPER_VERSION + ' (https://github.com/saveweb/dokuwiki-dumper)',
+                        help=f'The User-Agent to use when making requests [default: dokuWikiDumper/{DUMPER_VERSION} ...]')
 
     return parser
 
@@ -187,7 +190,7 @@ def dump():
     url_input = args.url
     skip_to = args.skip_to
 
-    session = createSession(retries=args.retry)
+    session = createSession(retries=args.retry, user_agent=args.user_agent)
 
     if args.verbose:
         def print_request(r: requests.Response, *args, **kwargs):
