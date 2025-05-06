@@ -1,6 +1,0 @@
-requests
-beautifulsoup4
-lxml
-internetarchive
-rich
-python-slugify
