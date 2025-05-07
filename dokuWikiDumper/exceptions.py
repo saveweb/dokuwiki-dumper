@@ -1,3 +1,10 @@
+import os
+import sys
+import traceback
+
+from dokuWikiDumper.__version__ import DUMPER_VERSION
+
+
 class VersionOutdatedError(Exception):
     def __init__(self, version):
         self.version = version
@@ -84,3 +91,22 @@ class RevisionListNotFound(Exception):
         return "Revision list not found for [[%s]]" % self.title
 
 
+def show_edge_case_warning(**context):
+    if int(os.environ.get('EDGECASE_OK', '0')):
+        return
+
+    print(
+    "[WARNING]\n"
+    "--------------------------------------------\n"
+    "The program is about to enter an edge case code, "
+    "which lacks real world testing, I'm not sure if the code that runs next can handle it properly. "
+    "So I hope you could paste the following details to <https://github.com/saveweb/dokuwiki-dumper/discussions> "
+    "to help me improve the code, Thanks!")
+    print("------------------------------------------")
+    calledfrom = traceback.extract_stack(limit=2)[0]
+    print("VERSION:", DUMPER_VERSION)
+    print("FUNC:", f'{calledfrom.filename}:{calledfrom.lineno} ', "FUNC:", calledfrom.name)
+    print("CONTEXT:", context)
+    print("------------------------------------------")
+    print("To continue executing the edge case code, re-run with --edgecase-ok")
+    sys.exit(13)

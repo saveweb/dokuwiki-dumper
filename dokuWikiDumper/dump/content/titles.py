@@ -4,9 +4,9 @@ from bs4 import BeautifulSoup
 import requests
 from dokuWikiDumper.exceptions import ActionIndexDisabled
 from dokuWikiDumper.utils.util import print_with_lock as print
-from dokuWikiDumper.utils.config import running_config
+from dokuWikiDumper.utils.config import runtime_config
 
-def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
+def get_titles(url, ns=None, session: requests.Session=None, useOldMethod=None):
     """Get titles given a doku.php URL and an (optional) namespace
 
     :param `useOldMethod`: `bool|None`. `None` will auto-detect if ajax api is enabled"""
@@ -51,8 +51,8 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
     
     assert useOldMethod is False
     r = session.post(ajax, data=params) if r is None else r # reuse the previous Response if possible
-    soup = BeautifulSoup(r.text, running_config.html_parser)
-    for a in soup.findAll('a', href=True):
+    soup = BeautifulSoup(r.text, runtime_config.html_parser)
+    for a in soup.find_all('a', href=True):
         if a.has_attr('title'):
             title = a['title']
         elif a.has_attr('data-wiki-id'): 
@@ -63,7 +63,7 @@ def getTitles(url, ns=None, session: requests.Session=None, useOldMethod=None):
             query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)
             title = (query['idx' if 'idx' in query else 'id'])[0]
         if 'idx_dir' in a['class']:
-            titles += getTitles(url=url, ns=title, session=session, useOldMethod=useOldMethod)
+            titles += get_titles(url=url, ns=title, session=session, useOldMethod=useOldMethod)
         else:
             titles.append(title)
     # time.sleep(1.5)
@@ -84,7 +84,7 @@ def getTitlesOld(url, ns=None, ancient=False, session:requests.Session=None):
     depth = len(ns.split(':'))
 
     r = session.get(url, params=params)
-    soup = BeautifulSoup(r.text, running_config.html_parser).findAll('ul', {'class': 'idx'})[0]
+    soup = BeautifulSoup(r.text, runtime_config.html_parser).find_all('ul', {'class': 'idx'})[0]
     attr = 'text' if ancient else 'title'
 
     if ns:
@@ -97,9 +97,9 @@ def getTitlesOld(url, ns=None, ancient=False, session:requests.Session=None):
             qs = urlparse.parse_qs(qs)
             return 'idx' in qs and qs['idx'][0] in (ns, ':' + ns)
         try:
-            result = soup.findAll(
+            result = soup.find_all(
             'a', {
-                'class': 'idx_dir', 'href': match})[0].findAllPrevious('li')[0].findAll(
+                'class': 'idx_dir', 'href': match})[0].find_all_previous('li')[0].find_all(
             'a', {
                 'href': lambda x: x and not match(x)})
         except:
@@ -110,7 +110,7 @@ def getTitlesOld(url, ns=None, ancient=False, session:requests.Session=None):
 
     else:
         print('Finding titles (?do=index)')
-        result = soup.findAll('a')
+        result = soup.find_all('a')
 
     for a in result:
         query = urlparse.parse_qs(urlparse.urlparse(a['href']).query)

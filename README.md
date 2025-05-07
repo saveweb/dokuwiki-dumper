@@ -10,13 +10,14 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 
 # For webmaster
 
-If you don’t want your wiki to be archived, add the following to your `domain/robots.txt`:
+We crawl every MediaWiki site (with 1.5s crawl-delay) every year and upload to the Internet Archive. If you don’t want your wiki to be archived, add the following to your `<domain>/robots.txt`:
 
 ```robots.txt
 User-agent: dokuWikiDumper
 Disallow: /
 ```
 
+Our bots are running on the following IPs: [wikiteam3.txt](https://static.saveweb.org/bots_ips/wikiteam3.txt) (ips, contact) | [wikiteam3.ips.txt](https://static.saveweb.org/bots_ips/wikiteam3.ips.txt) (ips)
 
 ## Requirements
 
