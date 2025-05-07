@@ -71,9 +71,6 @@ def getArgumentParser():
                         'This option will ignore this error and textarea not found error.'+
                         'But you may only get a partial dump. '+
                         '(only works with --content)', dest='ignore_action_disabled_edit')
-    parser.add_argument('--ignore-disposition-header-missing', action='store_true',
-                        help='Do not check Disposition header, useful for outdated (<2014) DokuWiki versions '
-                        '[default: False]', dest='ignore_disposition_header_missing')
     parser.add_argument('--trim-php-warnings', action='store_true', dest='trim_php_warnings',
                         help='Trim PHP warnings from requests.Response.text')
 
