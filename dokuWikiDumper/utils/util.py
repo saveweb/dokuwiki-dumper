@@ -4,24 +4,36 @@ import re
 import sys
 import threading
 import time
-from typing import Optional, List
+from typing import Any, Optional, List, Union, overload
 from urllib.parse import unquote, urlparse, urljoin
+
 from rich import print as rprint
-import requests
 from slugify import slugify
+import requests
 
 USE_RICH = True
 
 fileLock = threading.Lock()
 printLock = threading.Lock()
 
+@overload
+def check_int(s: str)->Optional[str]:...
+@overload
+def check_int(s: int) -> int: ...
+@overload
+def check_int(s: float) -> float: ...
+@overload
+def check_int(s: None) -> None: ...
+@overload
+def check_int(s: Any) -> Optional[Any]: ...
+def check_int(s: Union[int,float,str,None,Any]) -> Union[int,float,str,None]:
+    """
+    convert intable variable to int if possible
 
-def check_int(s: str = ''):
-    """ Check if a string is int-able
-    :return: None if not int-able, else the raw string
+    :return: None if not int-able, else the raw value
     """
     try:
-        int(s)
+        int(s) # type: ignore
         return s
     except Exception:
         return None
@@ -75,15 +87,15 @@ def avoidSites(url: str, session: requests.Session):
         time.sleep(3)
 
 
-def smkdirs(parent: str = None, *child: str)-> Optional[str]:
+def smkdirs(parent: str, *child: str)-> Optional[str]:
     """ safe mkdir, return: True->created, False->existed """
     if parent is None:
         raise ValueError('parent must be specified')
     
     # lstrip / in child
-    child = [c.lstrip('/') for c in child]
+    _child = [c.lstrip('/') for c in child]
 
-    dir = os.path.join(parent, *child)
+    dir = os.path.join(parent, *_child)
     # print(dir)
     fileLock.acquire()
     if not os.path.exists(dir):
@@ -95,7 +107,7 @@ def smkdirs(parent: str = None, *child: str)-> Optional[str]:
     return None
 
 
-def standardizeUrl(url: str):
+def standardize_url(url: str):
     """ 1. unquote url
         2. Add http:// if scheme is missing
         3. Remove port :80 and :443 if http:// and https:// respectively
@@ -111,6 +123,8 @@ def standardizeUrl(url: str):
         url = 'http://' + url
 
     Url = urlparse(url)
+
+    assert Url.hostname is not None, 'URL hostname is None'
     idna_hostname = Url.hostname.encode('idna').decode('utf-8')
 
     if Url.hostname != idna_hostname:
@@ -128,7 +142,7 @@ def standardizeUrl(url: str):
     return url
 
 
-def getDokuUrl(url: str = '', session=requests.Session):
+def get_doku_url(url: str, session: requests.Session):
     r = session.get(url)
     parsedUrl = urlparse(r.url)
     dokuUrl = urljoin(
@@ -140,7 +154,7 @@ def getDokuUrl(url: str = '', session=requests.Session):
     return dokuUrl
 
 
-def buildBaseUrl(url: str = '') -> str:
+def build_base_url(url: str = '') -> str:
     r = urlparse(url)
     path = r.path
     if path and path != '/' and not path.endswith('/'):
@@ -158,7 +172,7 @@ def url2prefix(url: str, ascii_slugify: bool = True):
     url = url.strip()
     if '\n' in url or '\r' in url:
         raise ValueError('URL contains newline')
-    url = standardizeUrl(url)
+    url = standardize_url(url)
 
     r = urlparse(url)
 
@@ -204,7 +218,7 @@ def test_url2prefix():
         assert url2prefix(url, ascii_slugify=True) == prefix
 
 
-def loadTitles(titlesFilePath) -> Optional[List[str]]:
+def load_titles(titlesFilePath) -> Optional[List[str]]:
     """ Load titles from dump directory
 
     Return:

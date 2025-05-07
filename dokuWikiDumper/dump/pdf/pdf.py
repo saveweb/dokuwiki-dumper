@@ -2,9 +2,9 @@ import os
 import threading
 import time
 import requests
-from dokuWikiDumper.dump.content.revisions import getRevisions
-from dokuWikiDumper.dump.content.titles import getTitles
-from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
+from dokuWikiDumper.dump.content.revisions import get_revisions
+from dokuWikiDumper.dump.content.titles import get_titles
+from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 from dokuWikiDumper.exceptions import DispositionHeaderMissingError
@@ -19,9 +19,9 @@ def dump_PDF(doku_url, dumpDir,
                   session: requests.Session, skipTo: int = 0, threads: int = 1,
                   ignore_errors: bool = False, current_only: bool = False):
 
-    titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
+    titles = load_titles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
     if titles is None:
-        titles = getTitles(url=doku_url, session=session)
+        titles = get_titles(url=doku_url, session=session)
         with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
             f.write('\n'.join(titles))
             f.write('\n--END--\n')
@@ -92,7 +92,7 @@ def _dump_pdf(dumpDir, index_of_title: int, title: str, doku_url, session: reque
     if current_only:
         return True
 
-    revs = getRevisions(doku_url=doku_url, session=session, title=title, msg_header=msg_header)
+    revs = get_revisions(doku_url=doku_url, session=session, title=title, msg_header=msg_header)
 
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:

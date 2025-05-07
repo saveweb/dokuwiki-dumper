@@ -17,21 +17,21 @@ import sys
 import time
 
 import requests
+
 from dokuWikiDumper.utils.dump_lock import DumpLock
 from dokuWikiDumper.utils.ia_checker import any_recent_ia_item_exists
-# import gzip, 7z
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION, dokuWikiDumper_outdated_check
-from dokuWikiDumper.dump.content import dumpContent
+from dokuWikiDumper.dump.content import dump_content
 from dokuWikiDumper.dump.html import dump_HTML
 from dokuWikiDumper.dump.info import update_info
-from dokuWikiDumper.dump.media import dumpMedia
+from dokuWikiDumper.dump.media import dump_media
 from dokuWikiDumper.dump.pdf import dump_PDF
-from dokuWikiDumper.utils.config import update_config, running_config
+from dokuWikiDumper.utils.config import update_config, runtime_config
 from dokuWikiDumper.utils.patch import SessionMonkeyPatch
-from dokuWikiDumper.utils.session import createSession, load_cookies, login_dokuwiki
-from dokuWikiDumper.utils.util import avoidSites, buildBaseUrl, getDokuUrl, smkdirs, standardizeUrl, uopen, url2prefix
+from dokuWikiDumper.utils.session import create_session, load_cookies, login_dokuwiki
+from dokuWikiDumper.utils.util import avoidSites, build_base_url, get_doku_url, smkdirs, standardize_url, uopen, url2prefix
 
 DEFAULT_THREADS = -1 # magic number, -1 means use 1 thread.
 
@@ -149,13 +149,13 @@ def checkArgs(args):
         from bs4 import BeautifulSoup, FeatureNotFound
         try:
             BeautifulSoup("", args.parser)
-            running_config.html_parser = args.parser
+            runtime_config.html_parser = args.parser
         except FeatureNotFound:
             print("Parser %s not found. Please install first following "
                   "https://www.crummy.com/software/BeautifulSoup/bs4/doc/#installing-a-parser"%(args.parser))
             return False
     if args.export_xhtml_action:
-        running_config.export_xhtml_action = args.export_xhtml_action
+        runtime_config.export_xhtml_action = args.export_xhtml_action
     return True
 
 
@@ -187,7 +187,7 @@ def dump():
     url_input = args.url
     skip_to = args.skip_to
 
-    session = createSession(retries=args.retry, user_agent=args.user_agent)
+    session = create_session(retries=args.retry, user_agent=args.user_agent)
 
     if args.verbose:
         def print_request(r: requests.Response, *args, **kwargs):
@@ -196,22 +196,22 @@ def dump():
             for _r in r.history:
                 print("Resp (history): ", _r.request.method, _r.status_code, _r.reason, _r.url)
             print(f"Resp: {r.request.method} {r.status_code} {r.reason} {r.url}")
-            if r.raw._connection.sock:
+            if r.raw._connection and r.raw._connection.sock:
                 print(f"Conn: {r.raw._connection.sock.getsockname()} -> {r.raw._connection.sock.getpeername()[0]}")
         session.hooks['response'].append(print_request)
 
     if args.insecure:
         session.verify = False
-        requests.packages.urllib3.disable_warnings()
+        requests.packages.urllib3.disable_warnings() # type: ignore
         print("Warning: SSL certificate verification disabled.")
     session_monkey = SessionMonkeyPatch(session=session, delay=args.delay, msg='',
                                         hard_retries=args.hard_retry,
                                         trim_PHP_warnings=args.trim_php_warnings)
     session_monkey.hijack()
 
-    std_url = standardizeUrl(url_input)
+    std_url = standardize_url(url_input)
     # use #force to skip 30X redirection detection
-    doku_url = getDokuUrl(std_url, session=session) if not std_url.endswith('#force') else std_url[:-len('#force')]
+    doku_url = get_doku_url(std_url, session=session) if not std_url.endswith('#force') else std_url[:-len('#force')]
 
     avoidSites(doku_url, session=session)
 
@@ -229,7 +229,7 @@ def dump():
         load_cookies(session, args.cookies)
 
 
-    base_url = buildBaseUrl(doku_url)
+    base_url = build_base_url(doku_url)
     dumpDir = url2prefix(doku_url) + '-' + \
         time.strftime("%Y%m%d", time.gmtime()) if not args.path else args.path.rstrip('/')
     if args.no_resume:
@@ -258,11 +258,10 @@ def dump():
                 print('Content already dumped.')
             else:
                 print('\nDumping content...\n')
-                dumpContent(doku_url=doku_url, dumpDir=dumpDir,
+                dump_content(doku_url=doku_url, dumpDir=dumpDir,
                             session=session, skipTo=skip_to, threads=args.threads,
                             ignore_errors=args.ignore_errors,
                             ignore_action_disabled_edit=args.ignore_action_disabled_edit,
-                            ignore_disposition_header_missing=args.ignore_disposition_header_missing,
                             current_only=args.current_only)
                 with open(os.path.join(dumpDir, 'content_dumped.mark'), 'w') as f:
                     f.write('done')
@@ -281,7 +280,7 @@ def dump():
                 print('Media already dumped.')
             else:
                 print('\nDumping media...\n')
-                dumpMedia(base_url=base_url, dumpDir=dumpDir,
+                dump_media(base_url=base_url, dumpDir=dumpDir,
                         session=session, threads=args.threads,
                         ignore_errors=args.ignore_errors)
                 with open(os.path.join(dumpDir, 'media_dumped.mark'), 'w') as f:

@@ -1,1 +1,1 @@
-from .media import dumpMedia, getFiles
+from .media import dump_media, getFiles

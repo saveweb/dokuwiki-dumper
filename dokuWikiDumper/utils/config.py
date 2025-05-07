@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 from dataclasses import dataclass
@@ -32,4 +31,4 @@ def get_config(dumpDir: str) -> dict:
 class _Dumper_running_config(metaclass = Singleton):
     html_parser: str = 'lxml'
     export_xhtml_action: str = 'export_xhtml' # 'export_xhtml' or 'export_raw'
-running_config = _Dumper_running_config()
+runtime_config = _Dumper_running_config() # runtime global config

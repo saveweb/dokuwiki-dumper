@@ -2,12 +2,12 @@ import os
 import threading
 import time
 import requests
-from dokuWikiDumper.dump.content.revisions import getRevisions, save_page_changes
-from dokuWikiDumper.dump.content.titles import getTitles
+from dokuWikiDumper.dump.content.revisions import get_revisions, save_page_changes
+from dokuWikiDumper.dump.content.titles import get_titles
 
-from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
+from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
-from dokuWikiDumper.utils.config import running_config
+from dokuWikiDumper.utils.config import runtime_config
 
 HTML_DIR = 'html/'
 HTML_PAGR_DIR = HTML_DIR + 'pages/'
@@ -20,9 +20,9 @@ def dump_HTML(doku_url, dumpDir,
                   ignore_errors: bool = False, current_only: bool = False):
     smkdirs(dumpDir, HTML_PAGR_DIR)
 
-    titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
+    titles = load_titles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
     if titles is None:
-        titles = getTitles(url=doku_url, session=session)
+        titles = get_titles(url=doku_url, session=session)
         with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
             f.write('\n'.join(titles))
             f.write('\n--END--\n')
@@ -45,6 +45,7 @@ def dump_HTML(doku_url, dumpDir,
                 sub_thread_error = e
                 raise e
             print('[',args[1]+1,']Error in sub thread: (', e, ') ignored')
+    threads_run: list[threading.Thread] = []
     for title in titles:
         while threading.active_count() > threads:
             time.sleep(0.1)
@@ -68,11 +69,11 @@ def dump_HTML(doku_url, dumpDir,
             (threading.active_count() - 1), end='\r')
 
 def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.Session, current_only: bool = False):
-    r = session.get(doku_url, params={'do': running_config.export_xhtml_action, 'id': title})
+    r = session.get(doku_url, params={'do': runtime_config.export_xhtml_action, 'id': title})
     # export_html is a alias of export_xhtml, but not exist in older versions of dokuwiki
     r.raise_for_status()
     if r.text is None or r.text == '':
-        raise Exception(f'Empty response (r.text)')
+        raise Exception('Empty response (r.text)')
 
     msg_header = '['+str(index_of_title + 1)+']: '
 
@@ -87,12 +88,12 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
     if current_only:
         return True
 
-    revs = getRevisions(doku_url=doku_url, session=session, title=title, msg_header=msg_header)
+    revs = get_revisions(doku_url=doku_url, session=session, title=title, msg_header=msg_header)
 
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                r = session.get(doku_url, params={'do': running_config.export_xhtml_action, 'id': title, 'rev': rev['id']})
+                r = session.get(doku_url, params={'do': runtime_config.export_xhtml_action, 'id': title, 'rev': rev['id']})
                 r.raise_for_status()
                 if r.text is None or r.text == '':
                     raise Exception(f'Empty response (r.text)')

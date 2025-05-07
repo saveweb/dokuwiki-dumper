@@ -1,34 +1,44 @@
-import builtins
-import os
+import copy
+from dataclasses import dataclass
+import queue
 import time
 import threading
+from typing import Callable, Literal, Union
 
-from bs4 import BeautifulSoup
 from requests import Session
 
 from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError
 
-
-from .revisions import getRevisions, getSourceEdit, getSourceExport, save_page_changes
-from .titles import getTitles
-from dokuWikiDumper.utils.util import loadTitles, smkdirs, uopen
+from .revisions import get_revisions, get_source_edit, get_source_export, save_page_changes
+from .titles import get_titles
+from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
-from dokuWikiDumper.utils.config import running_config
-
-
 
 sub_thread_error = None
 
 
-def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, skipTo: int = 0,
-                threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False,
-                ignore_disposition_header_missing: bool=False, current_only: bool = False):
+@dataclass
+class DumpPageParams:
+    dumpDir: str
+    getSource: Callable
+    title_index: int
+    title: str
+    doku_url: str
+    session: Session
+    current_only: bool
+
+
+POSION = True
+
+
+def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int = 0,
+                threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False, current_only: bool = False):
     if not dumpDir:
         raise ValueError('dumpDir must be set')
 
-    titles = loadTitles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
+    titles = load_titles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
     if titles is None:
-        titles = getTitles(url=doku_url, session=session)
+        titles = get_titles(url=doku_url, session=session)
         with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
             f.write('\n'.join(titles))
             f.write('\n--END--\n')
@@ -38,124 +48,111 @@ def dumpContent(doku_url: str = '', dumpDir: str = '', session: Session = None, 
         return False
 
     r1 = session.get(doku_url, params={'id': titles[0], 'do': 'export_raw'})
-    r2 = session.get(doku_url, params={'id': titles[0]})
-    r3 = session.get(doku_url, params={'id': titles[0], 'do': 'diff'})
 
-    getSource = getSourceExport
+    getSource = get_source_export
     if 'html' in r1.headers['content-type']:
         print('\nWarning: export_raw action not available, using edit action\n')
         time.sleep(3)
-        getSource = getSourceEdit
+        getSource = get_source_edit
 
-    soup = BeautifulSoup(r2.text, running_config.html_parser)
-    hidden_rev = soup.findAll(
-        'input', {
-            'type': 'hidden', 'name': 'rev', 'value': True})
-    use_hidden_rev = hidden_rev and hidden_rev[0]['value']
-    # TODO: what the `use_hidden_rev` is for?
-
-    soup = BeautifulSoup(r3.text, running_config.html_parser)
-    select_revs = soup.findAll(
-        'select', {
-            'class': 'quickselect', 'name': 'rev2[0]'})
-    # TODO: what the `select_revs` is for?
-
-    index_of_title = -1  # 0-based
+    title_index = -1  # 0-based
     if skipTo > 0:
-        index_of_title = skipTo - 2
+        title_index = skipTo - 2
         titles = titles[skipTo-1:]
 
-    def try_dump_page(*args, **kwargs):
-        try:
-            dump_page(*args, **kwargs)
-        except Exception as e:
-            if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
-                print('[',args[2]+1,'] action disabled: edit. ignored')
-            elif isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
-                print('[',args[2]+1,'] action edit: textarea not found. ignored')
-            elif not ignore_errors:
-                global sub_thread_error
-                sub_thread_error = e
-                raise e
-            else:
-                print('[',args[2]+1,']Error in sub thread: (', e, ') ignored')
+    tasks_queue: queue.Queue[Union[DumpPageParams,Literal[True]]] = queue.Queue(maxsize=threads)
+
+    workers: list[threading.Thread] = []
+    # spawn workers
+    for _ in range(threads):
+        t = threading.Thread(target=dump_worker, args=(tasks_queue, ignore_errors, ignore_action_disabled_edit))
+        t.daemon = True
+        t.start()
+        workers.append(t)
+
+    task_templ = DumpPageParams(dumpDir=dumpDir, doku_url=doku_url, session=session, getSource=getSource, current_only=current_only,
+                          title_index=-999, title="dokuwikidumper_placehold")
+
     for title in titles:
-        while threading.active_count() > threads:
-            time.sleep(0.1)
         if sub_thread_error:
             raise sub_thread_error
 
-        index_of_title += 1
-        t = threading.Thread(target=try_dump_page, args=(dumpDir,
-                                                     getSource,
-                                                     index_of_title,
-                                                     title,
-                                                     doku_url,
-                                                     session,
-                                                     use_hidden_rev,
-                                                     select_revs,
-                                                     current_only,
-                                                     ignore_disposition_header_missing,
-                                                     ))
-        print('Content: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
-        t.daemon = True
-        t.start()
+        title_index += 1
+        task = copy.copy(task_templ)
+        task.title_index = title_index
+        task.title = title
+        tasks_queue.put(task)
+        print('Content: (%d/%d): [[%s]] ...' % (title_index+1, len(titles), title))
 
-    while threading.active_count() > 1:
-        time.sleep(2)
-        print('Waiting for %d threads to finish' %
-              (threading.active_count() - 1), end='\r')
+    for _ in range(threads):
+        tasks_queue.put(POSION)
+
+    tasks_queue.join()
+
+    for w in workers:
+        w.join()
+
+    if sub_thread_error:
+        raise sub_thread_error
 
 
-def dump_page(dumpDir: str,
-              getSource,
-              index_of_title: int,
-              title: str,
-              doku_url: str,
-              session: Session,
-              use_hidden_rev,
-              select_revs,
-              current_only: bool,
-              ignore_disposition_header_missing: bool):
-    srouce = getSource(doku_url, title, session=session,
-                       ignore_disposition_header_missing=ignore_disposition_header_missing)
-    msg_header = '['+str(index_of_title + 1)+']: '
-    child_path = title.replace(':', '/')
+def dump_worker(tasks_queue: queue.Queue[Union[DumpPageParams,Literal[True]]], ignore_errors: bool, ignore_action_disabled_edit: bool):
+    global sub_thread_error
+    while True:
+        task_or_posion = tasks_queue.get()
+        if task_or_posion is POSION:
+            tasks_queue.task_done()
+            break
+        task = task_or_posion
+
+        try:
+            dump_page(task)
+        except Exception as e:
+            if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
+                print('[',task.title_index,'] action disabled: edit. ignored')
+            elif isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
+                print('[',task.title_index,'] action edit: textarea not found. ignored')
+            elif not ignore_errors:
+                sub_thread_error = e
+                raise e
+            else:
+                print('[',task.title_index,'] Error in sub thread: (', e, ') ignored')
+        finally:
+            tasks_queue.task_done()
+
+
+def dump_page(task: DumpPageParams):
+    srouce = task.getSource(task.doku_url, task.title, session=task.session)
+    msg_header = '['+str(task.title_index + 1)+']: '
+    child_path = task.title.replace(':', '/')
     child_path = child_path.lstrip('/')
     child_path = '/'.join(child_path.split('/')[:-1])
 
-    smkdirs(dumpDir, '/pages/' + child_path)
-    with uopen(dumpDir + '/pages/' + title.replace(':', '/') + '.txt', 'w') as f:
+    smkdirs(task.dumpDir, '/pages/' + child_path)
+    with uopen(task.dumpDir + '/pages/' + task.title.replace(':', '/') + '.txt', 'w') as f:
         f.write(srouce)
 
-    if current_only:
-        print(msg_header, '    [[%s]] saved.' % (title))
+    if task.current_only:
+        print(msg_header, '    [[%s]] saved.' % (task.title))
         return
 
-    revs = getRevisions(doku_url, title, use_hidden_rev,
-                        select_revs, session=session, msg_header=msg_header)
+    revs = get_revisions(task.doku_url, task.title, session=task.session, msg_header=msg_header)
 
 
-    save_page_changes(dumpDir=dumpDir, child_path=child_path, title=title, 
+    save_page_changes(dumpDir=task.dumpDir, child_path=child_path, title=task.title, 
                        revs=revs, msg_header=msg_header)
-
 
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                txt = getSource(doku_url, title, rev['id'], session=session,
-                                ignore_disposition_header_missing=ignore_disposition_header_missing)
-                smkdirs(dumpDir, '/attic/' + child_path)
-                with uopen(dumpDir + '/attic/' + title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                txt = task.getSource(task.doku_url, task.title, rev['id'], session=task.session)
+                smkdirs(task.dumpDir, '/attic/' + child_path)
+                with uopen(task.dumpDir + '/attic/' + task.title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                     f.write(txt)
                 print(msg_header, '    Revision %s of [[%s]] saved.' % (
-                    rev['id'], title))
+                    rev['id'], task.title))
             except DispositionHeaderMissingError:
                 print(msg_header, '    Revision %s of [[%s]] is empty. (probably deleted)' % (
-                    rev['id'], title))
+                    rev['id'], task.title))
         else:
-            print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, 'Rev id not found (please check ?do=revisions of this page)'))
-
-
-            # time.sleep(1.5)
-
+            print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], task.title, 'Rev id not found (please check ?do=revisions of this page)'))
