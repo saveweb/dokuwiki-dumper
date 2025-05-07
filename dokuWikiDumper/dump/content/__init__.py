@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import queue
 import time
 import threading
-from typing import Callable, Literal, Union
+from typing import Callable, Optional
 
 from requests import Session
 
@@ -28,7 +28,7 @@ class DumpPageParams:
     current_only: bool
 
 
-POSION = True
+POSION = None
 
 
 def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int = 0,
@@ -60,7 +60,7 @@ def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int =
         title_index = skipTo - 2
         titles = titles[skipTo-1:]
 
-    tasks_queue: queue.Queue[Union[DumpPageParams,Literal[True]]] = queue.Queue(maxsize=threads)
+    tasks_queue: queue.Queue[Optional[DumpPageParams]] = queue.Queue(maxsize=threads)
 
     workers: list[threading.Thread] = []
     # spawn workers
@@ -96,11 +96,11 @@ def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int =
         raise sub_thread_error
 
 
-def dump_worker(tasks_queue: queue.Queue[Union[DumpPageParams,Literal[True]]], ignore_errors: bool, ignore_action_disabled_edit: bool):
+def dump_worker(tasks_queue: queue.Queue[Optional[DumpPageParams]], ignore_errors: bool, ignore_action_disabled_edit: bool):
     global sub_thread_error
     while True:
         task_or_posion = tasks_queue.get()
-        if task_or_posion is POSION:
+        if task_or_posion is None:
             tasks_queue.task_done()
             break
         task = task_or_posion
