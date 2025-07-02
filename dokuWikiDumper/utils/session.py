@@ -2,16 +2,14 @@
 import http.cookiejar
 import requests.utils
 import json
-import queue
 import time
 
 import requests
-import urllib3
 
 from dokuWikiDumper.utils.util import uopen
 
 
-def createSession(retries=5, user_agent=None) -> requests.Session:
+def create_session(retries=5, user_agent=None) -> requests.Session:
     session = requests.Session()
     try:
         from requests.adapters import HTTPAdapter
@@ -27,7 +25,7 @@ def createSession(retries=5, user_agent=None) -> requests.Session:
                         try:
                             # drain conn in advance so that it won't be put back into conn.pool
                             kwargs['response'].drain_conn()
-                        except:
+                        except Exception:
                             pass
                     # Useless, retry happens inside urllib3
                     # for adapters in session.adapters.values():
@@ -40,7 +38,7 @@ def createSession(retries=5, user_agent=None) -> requests.Session:
                         try:
                             # Don't directly use this, This closes connection pool by making conn.pool = None
                             conn.close()
-                        except:
+                        except Exception:
                             pass
                         conn.pool = pool
                 return super(CustomRetry, self).increment(method=method, url=url, *args, **kwargs)
@@ -64,10 +62,12 @@ def createSession(retries=5, user_agent=None) -> requests.Session:
         )
         session.mount("https://", HTTPAdapter(max_retries=__retries__))
         session.mount("http://", HTTPAdapter(max_retries=__retries__))
-    except:
-        pass
+    except Exception as e:
+        print('Error: Could not set up retry adapter:', e)
 
-    session.headers.update({'User-Agent': user_agent})
+    if user_agent:
+        session.headers.update({'User-Agent': user_agent})
+    
     print('User-Agent:',session.headers.get('User-Agent'))
 
     return session
