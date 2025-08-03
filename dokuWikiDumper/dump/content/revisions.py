@@ -97,19 +97,16 @@ def get_revisions(doku_url, title: str, session: requests.Session, msg_header: s
         lis = None
 
         # check if form#page__revisions exists
-        page__revisions = soup.find('form', {'id': 'page__revisions'})
-        logger.debug('page__revisions: %s', page__revisions)
-        if page__revisions:
-            ul = page__revisions.find('ul')
-            if ul:
+        if page__revisions := soup.find('form', {'id': 'page__revisions'}):
+            logger.debug('page__revisions: %s', page__revisions)
+            if ul := page__revisions.find('ul'):
                 assert isinstance(ul, Tag)
                 lis = ul.find_all('li')
 
         # outdate dokuwiki version? try another way.
-        div_page = soup.find('div', {'class': 'page'})
-        if div_page:
-            ul = div_page.find('ul')
-            if ul:
+        if div_page := soup.find('div', {'class': 'page'}):
+            logger.debug('div.page: %s', div_page)
+            if ul := div_page.find('ul'):
                 assert isinstance(ul, Tag)
                 lis = ul.find_all('li')
 
