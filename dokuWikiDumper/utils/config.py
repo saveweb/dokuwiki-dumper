@@ -8,13 +8,13 @@ from dokuWikiDumper.utils.util import uopen
 CONFIG_FILEPATH = 'dumpMeta/config.json'
 
 
-def update_config(dumpDir: str, config: dict):
+def update_config(dump_dir: str, config: dict):
     '''Only updates given keys in config.'''
-    _config = get_config(dumpDir)
+    _config = get_config(dump_dir)
     config = {**_config, **config}
     print("Config: ", config)
 
-    with uopen(os.path.join(dumpDir, CONFIG_FILEPATH), 'w') as f:
+    with uopen(os.path.join(dump_dir, CONFIG_FILEPATH), 'w') as f:
         json.dump(config, f, indent=4, ensure_ascii=False)
 
 

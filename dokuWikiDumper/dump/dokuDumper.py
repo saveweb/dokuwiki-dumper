@@ -23,15 +23,15 @@ from dokuWikiDumper.utils.ia_checker import any_recent_ia_item_exists
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION, dokuWikiDumper_outdated_check
-from dokuWikiDumper.dump.content import dump_content
-from dokuWikiDumper.dump.html import dump_HTML
-from dokuWikiDumper.dump.info import update_info
-from dokuWikiDumper.dump.media import dump_media
+from dokuWikiDumper.dump.content.content import dump_content
+from dokuWikiDumper.dump.html.html import dump_HTML
+from dokuWikiDumper.dump.info.info import update_info
+from dokuWikiDumper.dump.media.media import dump_media
 from dokuWikiDumper.dump.pdf import dump_PDF
 from dokuWikiDumper.utils.config import update_config, runtime_config
 from dokuWikiDumper.utils.patch import SessionMonkeyPatch
 from dokuWikiDumper.utils.session import create_session, load_cookies, login_dokuwiki
-from dokuWikiDumper.utils.util import avoidSites, build_base_url, get_doku_url, smkdirs, standardize_url, uopen, url2prefix
+from dokuWikiDumper.utils.util import avoidSites, build_base_url, get_doku_url, smkdirs, standardize_url, url2prefix
 
 DEFAULT_THREADS = -1 # magic number, -1 means use 1 thread.
 
@@ -230,16 +230,16 @@ def dump():
 
 
     base_url = build_base_url(doku_url)
-    dumpDir = url2prefix(doku_url) + '-' + \
+    dump_dir = url2prefix(doku_url) + '-' + \
         time.strftime("%Y%m%d", time.gmtime()) if not args.path else args.path.rstrip('/')
     if args.no_resume:
-        if os.path.exists(dumpDir):
+        if os.path.exists(dump_dir):
             print(
                 'Dump directory already exists. (You can use --path to specify a different directory.)')
             return 1
 
-    smkdirs(dumpDir, '/dumpMeta')
-    print('Dumping to ', dumpDir,
+    smkdirs(dump_dir, '/dumpMeta')
+    print('Dumping to ', dump_dir,
           '\nBase URL: ', base_url,
           '\nDokuPHP URL: ', doku_url)
 
@@ -249,52 +249,52 @@ def dump():
                'base_url': base_url,  # type: str
                'dokuWikiDumper_version': DUMPER_VERSION,
                }
-    update_config(dumpDir=dumpDir, config=_config)
-    update_info(dumpDir, doku_url=doku_url, session=session)
+    update_config(dump_dir=dump_dir, config=_config)
+    update_info(dump_dir, doku_url=doku_url, session=session)
 
-    with DumpLock(dumpDir):
+    with DumpLock(dump_dir):
         if args.content:
-            if os.path.exists(os.path.join(dumpDir, 'content_dumped.mark')):
+            if os.path.exists(os.path.join(dump_dir, 'content_dumped.mark')):
                 print('Content already dumped.')
             else:
                 print('\nDumping content...\n')
-                dump_content(doku_url=doku_url, dumpDir=dumpDir,
+                dump_content(doku_url=doku_url, dump_dir=dump_dir,
                             session=session, skipTo=skip_to, threads=args.threads,
                             ignore_errors=args.ignore_errors,
                             ignore_action_disabled_edit=args.ignore_action_disabled_edit,
                             current_only=args.current_only)
-                with open(os.path.join(dumpDir, 'content_dumped.mark'), 'w') as f:
+                with open(os.path.join(dump_dir, 'content_dumped.mark'), 'w') as f:
                     f.write('done')
         if args.html:
-            if os.path.exists(os.path.join(dumpDir, 'html_dumped.mark')):
+            if os.path.exists(os.path.join(dump_dir, 'html_dumped.mark')):
                 print('HTML already dumped.')
             else:
                 print('\nDumping HTML...\n')
-                dump_HTML(doku_url=doku_url, dumpDir=dumpDir,
+                dump_HTML(doku_url=doku_url, dumpDir=dump_dir,
                         session=session, skipTo=skip_to, threads=args.threads,
                         ignore_errors=args.ignore_errors, current_only=args.current_only)
-                with open(os.path.join(dumpDir, 'html_dumped.mark'), 'w') as f:
+                with open(os.path.join(dump_dir, 'html_dumped.mark'), 'w') as f:
                     f.write('done')
         if args.media: # last, so that we can know the dump is complete.
-            if os.path.exists(os.path.join(dumpDir, 'media_dumped.mark')):
+            if os.path.exists(os.path.join(dump_dir, 'media_dumped.mark')):
                 print('Media already dumped.')
             else:
                 print('\nDumping media...\n')
-                dump_media(base_url=base_url, dumpDir=dumpDir,
+                dump_media(base_url=base_url, dumpDir=dump_dir,
                         session=session, threads=args.threads,
                         ignore_errors=args.ignore_errors)
-                with open(os.path.join(dumpDir, 'media_dumped.mark'), 'w') as f:
+                with open(os.path.join(dump_dir, 'media_dumped.mark'), 'w') as f:
                     f.write('done')
         if args.pdf:
-            if os.path.exists(os.path.join(dumpDir, 'pdf_dumped.mark')):
+            if os.path.exists(os.path.join(dump_dir, 'pdf_dumped.mark')):
                 print('PDF already dumped.')
             else:
                 print('\nDumping PDF...\n')
-                dump_PDF(doku_url=base_url, dumpDir=dumpDir,
+                dump_PDF(doku_url=base_url, dumpDir=dump_dir,
                         session=session, threads=args.threads,
                         ignore_errors=args.ignore_errors, current_only=True)
                         # to avoid overload the server, we only dump the current revision of the PDF.
-                with open(os.path.join(dumpDir, 'pdf_dumped.mark'), 'w') as f:
+                with open(os.path.join(dump_dir, 'pdf_dumped.mark'), 'w') as f:
                     f.write('done')
 
 
@@ -306,7 +306,7 @@ def dump():
         # from dokuWikiUploader.uploader import upload
         from subprocess import call
         time.sleep(5)
-        retcode = call([sys.executable, '-m', 'dokuWikiUploader.uploader', dumpDir] + args.uploader_args,
+        retcode = call([sys.executable, '-m', 'dokuWikiUploader.uploader', dump_dir] + args.uploader_args,
              shell=False, env=os.environ.copy())
         if retcode == 0:
             print('dokuWikiUploader: --upload: Done')

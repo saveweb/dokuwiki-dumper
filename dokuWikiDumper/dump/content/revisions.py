@@ -36,7 +36,7 @@ def get_source_export(url: str, title: str, rev: str = '', *, session: requests.
 
 
 # args must be same as get_source_export(), even if not used
-def get_source_edit(url, title, rev='', *, session: requests.Session):
+def get_source_edit(url: str, title: str, rev: str = '', *, session: requests.Session):
     """Export the raw source of a page by scraping the edit box content. Yuck."""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})

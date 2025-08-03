@@ -4,14 +4,13 @@ import shutil
 import time
 import os
 import subprocess
-import json
 
 from internetarchive import get_item
 import requests
 
 from dokuWikiDumper.utils.util import url2prefix
-from dokuWikiDumper.dump.info import get_info
-from dokuWikiDumper.dump.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG, INFO_ICON_URL
+from dokuWikiDumper.dump.info.info import get_info
+from dokuWikiDumper.dump.info.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG
 from dokuWikiDumper.utils.config import get_config
 
 from .__version__ import UPLOADER_VERSION
@@ -49,7 +48,7 @@ def read_ia_keys(keysfile):
     return access_key, secret_key
 
 
-def upload(args: dict):
+def upload(args: argparse.Namespace):
     dump_dir = args.dump_dir
     path7z = args.path7z # '/usr/bin/7z'
     access_key, secret_key = read_ia_keys(os.path.expanduser(args.keysfile))

@@ -20,7 +20,7 @@ sub_thread_error = None
 @dataclass
 class DumpPageParams:
     dumpDir: str
-    getSource: Callable
+    get_source: Callable
     title_index: int
     title: str
     doku_url: str
@@ -31,15 +31,15 @@ class DumpPageParams:
 POSION = None
 
 
-def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int = 0,
+def dump_content(*, doku_url: str, dump_dir: str, session: Session, skipTo: int = 0,
                 threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False, current_only: bool = False):
-    if not dumpDir:
+    if not dump_dir:
         raise ValueError('dumpDir must be set')
 
-    titles = load_titles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
+    titles = load_titles(titlesFilePath=dump_dir + '/dumpMeta/titles.txt')
     if titles is None:
         titles = get_titles(url=doku_url, session=session)
-        with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
+        with uopen(dump_dir + '/dumpMeta/titles.txt', 'w') as f:
             f.write('\n'.join(titles))
             f.write('\n--END--\n')
 
@@ -49,11 +49,11 @@ def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int =
 
     r1 = session.get(doku_url, params={'id': titles[0], 'do': 'export_raw'})
 
-    getSource = get_source_export
+    get_source = get_source_export
     if 'html' in r1.headers['content-type']:
         print('\nWarning: export_raw action not available, using edit action\n')
         time.sleep(3)
-        getSource = get_source_edit
+        get_source = get_source_edit
 
     title_index = -1  # 0-based
     if skipTo > 0:
@@ -70,7 +70,7 @@ def dump_content(*, doku_url: str, dumpDir: str, session: Session, skipTo: int =
         t.start()
         workers.append(t)
 
-    task_templ = DumpPageParams(dumpDir=dumpDir, doku_url=doku_url, session=session, getSource=getSource, current_only=current_only,
+    task_templ = DumpPageParams(dumpDir=dump_dir, doku_url=doku_url, session=session, get_source=get_source, current_only=current_only,
                           title_index=-999, title="dokuwikidumper_placehold")
 
     for title in titles:
@@ -122,7 +122,7 @@ def dump_worker(tasks_queue: queue.Queue[Optional[DumpPageParams]], ignore_error
 
 
 def dump_page(task: DumpPageParams):
-    srouce = task.getSource(task.doku_url, task.title, session=task.session)
+    srouce = task.get_source(task.doku_url, task.title, session=task.session)
     msg_header = '['+str(task.title_index + 1)+']: '
     child_path = task.title.replace(':', '/')
     child_path = child_path.lstrip('/')
@@ -145,7 +145,7 @@ def dump_page(task: DumpPageParams):
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                txt = task.getSource(task.doku_url, task.title, rev['id'], session=task.session)
+                txt = task.get_source(task.doku_url, task.title, rev['id'], session=task.session)
                 smkdirs(task.dumpDir, '/attic/' + child_path)
                 with uopen(task.dumpDir + '/attic/' + task.title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                     f.write(txt)
