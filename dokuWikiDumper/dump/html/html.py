@@ -42,8 +42,8 @@ def dump_HTML(doku_url, dump_dir,
     tasks_queue: queue.Queue[Optional[DumpHTMLParams]] = queue.Queue(maxsize=threads)
     workers: list[threading.Thread] = []
 
-    for _ in range(threads):
-        t = threading.Thread(target=html_worker, args=(tasks_queue, ignore_errors))
+    for i in range(threads):
+        t = threading.Thread(name=f"worker-{i}", target=html_worker, args=(tasks_queue, ignore_errors))
         t.daemon = True
         t.start()
         workers.append(t)
@@ -63,6 +63,7 @@ def dump_HTML(doku_url, dump_dir,
 
     for w in workers:
         w.join()
+        print('worker %s finished' % w.name)
 
     if sub_thread_error:
         raise sub_thread_error

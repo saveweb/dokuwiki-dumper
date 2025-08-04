@@ -42,8 +42,8 @@ def dump_PDF(doku_url, dump_dir,
 
     workers: list[threading.Thread] = []
     # spawn workers
-    for _ in range(threads):
-        t = threading.Thread(target=dump_pdf_worker, args=(tasks_queue, ignore_errors))
+    for i in range(threads):
+        t = threading.Thread(name=f"worker-{i}", target=dump_pdf_worker, args=(tasks_queue, ignore_errors))
         t.daemon = True
         t.start()
         workers.append(t)
@@ -68,6 +68,7 @@ def dump_PDF(doku_url, dump_dir,
 
     for w in workers:
         w.join()
+        print('worker %s finished' % w.name)
 
     if sub_thread_error:
         raise sub_thread_error

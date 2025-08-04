@@ -51,8 +51,8 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int
 
     workers: list[threading.Thread] = []
     # spawn workers
-    for _ in range(threads):
-        t = threading.Thread(target=dump_worker, args=(tasks_queue, ignore_errors, ignore_action_disabled_edit))
+    for i in range(threads):
+        t = threading.Thread(name=f"worker-{i}", target=dump_worker, args=(tasks_queue, ignore_errors, ignore_action_disabled_edit))
         t.daemon = True
         t.start()
         workers.append(t)
@@ -77,6 +77,7 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int
 
     for w in workers:
         w.join()
+        print('worker %s finished' % w.name)
 
     if sub_thread_error:
         raise sub_thread_error

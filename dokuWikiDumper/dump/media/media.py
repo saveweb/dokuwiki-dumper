@@ -90,8 +90,8 @@ def dump_media(*, base_url: str, dumpDir: str, session: requests.Session, thread
 
     workers: list[threading.Thread] = []
     # spawn workers
-    for _ in range(threads):
-        t = threading.Thread(target=dump_media_worker, args=(tasks_queue, ignore_errors))
+    for i in range(threads):
+        t = threading.Thread(name=f"worker-{i}", target=dump_media_worker, args=(tasks_queue, ignore_errors))
         t.daemon = True
         t.start()
         workers.append(t)
@@ -116,6 +116,7 @@ def dump_media(*, base_url: str, dumpDir: str, session: requests.Session, thread
 
     for w in workers:
         w.join()
+        print('worker %s finished' % w.name)
 
     if sub_thread_error:
         raise sub_thread_error
