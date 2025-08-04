@@ -19,7 +19,7 @@ sub_thread_error = None
 
 @dataclass
 class DumpPageParams:
-    dumpDir: str
+    dump_dir: str
     get_source: Callable
     title_index: int
     title: str
@@ -28,7 +28,6 @@ class DumpPageParams:
     current_only: bool
 
 
-POSION = None
 
 
 def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int = 1,
@@ -58,7 +57,7 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int
         t.start()
         workers.append(t)
 
-    task_templ = DumpPageParams(dumpDir=dump_dir, doku_url=doku_url, session=session, get_source=get_source, current_only=current_only,
+    task_templ = DumpPageParams(dump_dir=dump_dir, doku_url=doku_url, session=session, get_source=get_source, current_only=current_only,
                           title_index=-999, title="dokuwikidumper_placehold")
 
     for index, title in enumerate(titles):
@@ -72,7 +71,7 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int
         print('Content: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
 
     for _ in range(threads):
-        tasks_queue.put(POSION)
+        tasks_queue.put(None)
 
     tasks_queue.join()
 
@@ -85,13 +84,7 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int
 
 def dump_worker(tasks_queue: queue.Queue[Optional[DumpPageParams]], ignore_errors: bool, ignore_action_disabled_edit: bool):
     global sub_thread_error
-    while True:
-        task_or_posion = tasks_queue.get()
-        if task_or_posion is None:
-            tasks_queue.task_done()
-            break
-        task = task_or_posion
-
+    while task := tasks_queue.get():
         try:
             dump_page(task)
         except Exception as e:
@@ -106,18 +99,19 @@ def dump_worker(tasks_queue: queue.Queue[Optional[DumpPageParams]], ignore_error
                 print('[',task.title_index,'] Error in sub thread: (', e, ') ignored')
         finally:
             tasks_queue.task_done()
+    tasks_queue.task_done()
 
 
 def dump_page(task: DumpPageParams):
-    srouce = task.get_source(task.doku_url, task.title, session=task.session)
+    source = task.get_source(task.doku_url, task.title, session=task.session)
     msg_header = '['+str(task.title_index + 1)+']: '
     child_path = task.title.replace(':', '/')
     child_path = child_path.lstrip('/')
     child_path = '/'.join(child_path.split('/')[:-1])
 
-    smkdirs(task.dumpDir, '/pages/' + child_path)
-    with uopen(task.dumpDir + '/pages/' + task.title.replace(':', '/') + '.txt', 'w') as f:
-        f.write(srouce)
+    smkdirs(task.dump_dir, '/pages/' + child_path)
+    with uopen(task.dump_dir + '/pages/' + task.title.replace(':', '/') + '.txt', 'w') as f:
+        f.write(source)
 
     if task.current_only:
         print(msg_header, '    [[%s]] saved.' % (task.title))
@@ -126,15 +120,15 @@ def dump_page(task: DumpPageParams):
     revs = get_revisions(task.doku_url, task.title, session=task.session, msg_header=msg_header)
 
 
-    save_page_changes(dumpDir=task.dumpDir, child_path=child_path, title=task.title, 
+    save_page_changes(dumpDir=task.dump_dir, child_path=child_path, title=task.title, 
                        revs=revs, msg_header=msg_header)
 
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
                 txt = task.get_source(task.doku_url, task.title, rev['id'], session=task.session)
-                smkdirs(task.dumpDir, '/attic/' + child_path)
-                with uopen(task.dumpDir + '/attic/' + task.title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
+                smkdirs(task.dump_dir, '/attic/' + child_path)
+                with uopen(task.dump_dir + '/attic/' + task.title.replace(':', '/') + '.' + rev['id'] + '.txt', 'w') as f:
                     f.write(txt)
                 print(msg_header, '    Revision %s of [[%s]] saved.' % (
                     rev['id'], task.title))

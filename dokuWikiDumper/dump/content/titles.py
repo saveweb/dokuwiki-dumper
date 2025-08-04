@@ -9,6 +9,7 @@ def get_titles(url, ns=None, session: requests.Session=None, use_legacy_method=N
     """Get titles given a doku.php URL and an (optional) namespace
 
     :param `use_legacy_method`: `bool|None`. `None` will auto-detect if ajax api is enabled"""
+
     titles = []
     ajax = urlparse.urljoin(url, 'lib/exe/ajax.php')
     params = {'call': 'index'}

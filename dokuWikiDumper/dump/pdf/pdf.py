@@ -4,7 +4,7 @@ import time
 import requests
 from dokuWikiDumper.dump.content.revisions import get_revisions
 from dokuWikiDumper.dump.content.titles import load_get_save_titles
-from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
+from dokuWikiDumper.utils.util import smkdirs
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 from dokuWikiDumper.exceptions import DispositionHeaderMissingError

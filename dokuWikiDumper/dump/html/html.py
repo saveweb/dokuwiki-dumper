@@ -1,11 +1,15 @@
+import copy
+from dataclasses import dataclass
 import os
+import queue
 import threading
 import time
+from typing import Optional
 import requests
 from dokuWikiDumper.dump.content.revisions import get_revisions, save_page_changes
 from dokuWikiDumper.dump.content.titles import load_get_save_titles
 
-from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
+from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.config import runtime_config
 
@@ -14,6 +18,15 @@ HTML_PAGR_DIR = HTML_DIR + 'pages/'
 HTML_OLDPAGE_DIR = HTML_DIR + 'attic/'
 
 sub_thread_error = None
+
+@dataclass
+class DumpHTMLParams:
+    dump_dir: str
+    title_index: int
+    title: str
+    doku_url: str
+    session: requests.Session
+    current_only: bool
 
 def dump_HTML(doku_url, dump_dir,
                 session: requests.Session, threads: int = 1,
@@ -26,77 +39,86 @@ def dump_HTML(doku_url, dump_dir,
         print('Empty wiki')
         return False
     
+    tasks_queue: queue.Queue[Optional[DumpHTMLParams]] = queue.Queue(maxsize=threads)
+    workers: list[threading.Thread] = []
 
-    def try_dump_html_page(*args, **kwargs):
+    for _ in range(threads):
+        t = threading.Thread(target=html_worker, args=(tasks_queue, ignore_errors))
+        t.daemon = True
+        t.start()
+        workers.append(t)
+
+    task_templ = DumpHTMLParams(dump_dir=dump_dir, title_index=0, title='', doku_url=doku_url, session=session, current_only=current_only)
+
+    for index, title in enumerate(titles):
+        if sub_thread_error:
+            raise sub_thread_error
+
+        task = copy.copy(task_templ)
+        task.title_index, task.title = index, title
+        tasks_queue.put(task)
+        print('HTML: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
+
+    tasks_queue.join()
+
+    for w in workers:
+        w.join()
+
+    if sub_thread_error:
+        raise sub_thread_error
+def html_worker(tasks_queue: queue.Queue, ignore_errors: bool):
+    while task := tasks_queue.get():
         try:
-            dump_html_page(*args, **kwargs)
+            dump_html_page(task)
         except Exception as e:
             if not ignore_errors:
                 global sub_thread_error
                 sub_thread_error = e
                 raise e
-            print('[',args[1]+1,']Error in sub thread: (', e, ') ignored')
-    threads_run: list[threading.Thread] = []
-    for index, title in enumerate(titles):
-        while threading.active_count() > threads:
-            time.sleep(0.1)
-        if sub_thread_error:
-            raise sub_thread_error
+            print('[',task.title_index+1,']Error in sub thread: (', e, ') ignored')
+        finally:
+            tasks_queue.task_done()
+    tasks_queue.task_done()
 
-        t = threading.Thread(target=try_dump_html_page, args=(dump_dir,
-                                                    index,
-                                                    title,
-                                                    doku_url,
-                                                    session,
-                                                    current_only))
-        print('HTML: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
-        t.daemon = True
-        t.start()
-
-    while threading.active_count() > 1:
-        time.sleep(2)
-        print('Waiting for %d threads to finish' %
-            (threading.active_count() - 1), end='\r')
-
-def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.Session, current_only: bool = False):
-    r = session.get(doku_url, params={'do': runtime_config.export_xhtml_action, 'id': title})
+def dump_html_page(task: DumpHTMLParams):
+    r = task.session.get(task.doku_url, params={'do': runtime_config.export_xhtml_action, 'id': task.title})
     # export_html is a alias of export_xhtml, but not exist in older versions of dokuwiki
     r.raise_for_status()
     if r.text is None or r.text == '':
         raise Exception('Empty response (r.text)')
 
-    msg_header = '['+str(index_of_title + 1)+']: '
+    msg_header = '['+str(task.title_index + 1)+']: '
 
-    title2path = title.replace(':', '/')
+    title2path = task.title.replace(':', '/')
     child_path = os.path.dirname(title2path)
-    html_path = dumpDir + '/' + HTML_PAGR_DIR + title2path + '.html'
-    smkdirs(dumpDir, HTML_PAGR_DIR, child_path)
+    html_path = task.dump_dir + '/' + HTML_PAGR_DIR + title2path + '.html'
+    smkdirs(task.dump_dir, HTML_PAGR_DIR, child_path)
     with uopen(html_path, 'w') as f:
         f.write(r.text)
-        print(msg_header, '[[%s]]' % title, 'saved')
-    
-    if current_only:
+        print(msg_header, '[[%s]]' % task.title, 'saved')
+
+    if task.current_only:
         return True
 
-    revs = get_revisions(doku_url=doku_url, session=session, title=title, msg_header=msg_header)
+    revs = get_revisions(doku_url=task.doku_url, session=task.session, title=task.title, msg_header=msg_header)
 
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                r = session.get(doku_url, params={'do': runtime_config.export_xhtml_action, 'id': title, 'rev': rev['id']})
+                r = task.session.get(task.doku_url, params={'do': runtime_config.export_xhtml_action, 'id': task.title, 'rev': rev['id']})
                 r.raise_for_status()
                 if r.text is None or r.text == '':
                     raise Exception('Empty response (r.text)')
-                smkdirs(dumpDir, HTML_OLDPAGE_DIR, child_path)   
-                old_html_path = dumpDir + '/' + HTML_OLDPAGE_DIR + title2path + '.' + rev['id'] + '.html'
+                smkdirs(task.dump_dir, HTML_OLDPAGE_DIR, child_path)
+                old_html_path = task.dump_dir + '/' + HTML_OLDPAGE_DIR + title2path + '.' + rev['id'] + '.html'
 
                 with uopen(old_html_path, 'w') as f:
                     f.write(r.text)
-                print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], title))
+                print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], task.title))
             except requests.HTTPError as e:
-                print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, e))
+                print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], task.title, e))
         else:
-            print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, 'Rev id not found (please check ?do=revisions of this page)'))
+            print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], task.title, 'Rev id not found (please check ?do=revisions of this page)'))
 
-    save_page_changes(dumpDir=dumpDir, child_path=child_path, title=title, 
+    save_page_changes(dumpDir=task.dump_dir, child_path=child_path, title=task.title, 
                        revs=revs, msg_header=msg_header)
