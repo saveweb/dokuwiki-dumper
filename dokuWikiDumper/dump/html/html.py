@@ -59,6 +59,9 @@ def dump_HTML(doku_url, dump_dir,
         tasks_queue.put(task)
         print('HTML: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
 
+    for _ in range(threads):
+        tasks_queue.put(None)
+
     tasks_queue.join()
 
     for w in workers:
