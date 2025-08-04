@@ -3,7 +3,7 @@ import threading
 import time
 import requests
 from dokuWikiDumper.dump.content.revisions import get_revisions, save_page_changes
-from dokuWikiDumper.dump.content.titles import get_titles
+from dokuWikiDumper.dump.content.titles import load_get_save_titles
 
 from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
@@ -15,26 +15,17 @@ HTML_OLDPAGE_DIR = HTML_DIR + 'attic/'
 
 sub_thread_error = None
 
-def dump_HTML(doku_url, dumpDir,
-                  session: requests.Session, skipTo: int = 0, threads: int = 1,
-                  ignore_errors: bool = False, current_only: bool = False):
-    smkdirs(dumpDir, HTML_PAGR_DIR)
+def dump_HTML(doku_url, dump_dir,
+                session: requests.Session, threads: int = 1,
+                ignore_errors: bool = False, current_only: bool = False):
+    smkdirs(dump_dir, HTML_PAGR_DIR)
 
-    titles = load_titles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
-    if titles is None:
-        titles = get_titles(url=doku_url, session=session)
-        with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
-            f.write('\n'.join(titles))
-            f.write('\n--END--\n')
+    titles = load_get_save_titles(dump_dir=dump_dir, url=doku_url, session=session)
     
     if not len(titles):
         print('Empty wiki')
         return False
     
-    index_of_title = -1  # 0-based
-    if skipTo > 0:
-        index_of_title = skipTo - 2
-        titles = titles[skipTo-1:]
 
     def try_dump_html_page(*args, **kwargs):
         try:
@@ -46,20 +37,19 @@ def dump_HTML(doku_url, dumpDir,
                 raise e
             print('[',args[1]+1,']Error in sub thread: (', e, ') ignored')
     threads_run: list[threading.Thread] = []
-    for title in titles:
+    for index, title in enumerate(titles):
         while threading.active_count() > threads:
             time.sleep(0.1)
         if sub_thread_error:
             raise sub_thread_error
 
-        index_of_title += 1
-        t = threading.Thread(target=try_dump_html_page, args=(dumpDir,
-                                                    index_of_title,
+        t = threading.Thread(target=try_dump_html_page, args=(dump_dir,
+                                                    index,
                                                     title,
                                                     doku_url,
                                                     session,
                                                     current_only))
-        print('HTML: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
+        print('HTML: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
         t.daemon = True
         t.start()
 
@@ -96,7 +86,7 @@ def dump_html_page(dumpDir, index_of_title, title, doku_url, session: requests.S
                 r = session.get(doku_url, params={'do': runtime_config.export_xhtml_action, 'id': title, 'rev': rev['id']})
                 r.raise_for_status()
                 if r.text is None or r.text == '':
-                    raise Exception(f'Empty response (r.text)')
+                    raise Exception('Empty response (r.text)')
                 smkdirs(dumpDir, HTML_OLDPAGE_DIR, child_path)   
                 old_html_path = dumpDir + '/' + HTML_OLDPAGE_DIR + title2path + '.' + rev['id'] + '.html'
 

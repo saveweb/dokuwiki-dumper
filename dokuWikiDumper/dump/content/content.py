@@ -10,8 +10,8 @@ from requests import Session
 from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError
 
 from .revisions import get_revisions, get_source_edit, get_source_export, save_page_changes
-from .titles import get_titles
-from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
+from .titles import load_get_save_titles
+from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 
 sub_thread_error = None
@@ -31,17 +31,9 @@ class DumpPageParams:
 POSION = None
 
 
-def dump_content(*, doku_url: str, dump_dir: str, session: Session, skipTo: int = 0,
-                threads: int = 1, ignore_errors: bool = False, ignore_action_disabled_edit: bool = False, current_only: bool = False):
-    if not dump_dir:
-        raise ValueError('dumpDir must be set')
-
-    titles = load_titles(titlesFilePath=dump_dir + '/dumpMeta/titles.txt')
-    if titles is None:
-        titles = get_titles(url=doku_url, session=session)
-        with uopen(dump_dir + '/dumpMeta/titles.txt', 'w') as f:
-            f.write('\n'.join(titles))
-            f.write('\n--END--\n')
+def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int = 1,
+                 ignore_errors: bool = False, ignore_action_disabled_edit: bool = False, current_only: bool = False):
+    titles = load_get_save_titles(dump_dir=dump_dir, url=doku_url, session=session)
 
     if not len(titles):
         print('Empty wiki')
@@ -55,10 +47,6 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, skipTo: int 
         time.sleep(3)
         get_source = get_source_edit
 
-    title_index = -1  # 0-based
-    if skipTo > 0:
-        title_index = skipTo - 2
-        titles = titles[skipTo-1:]
 
     tasks_queue: queue.Queue[Optional[DumpPageParams]] = queue.Queue(maxsize=threads)
 
@@ -73,16 +61,15 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, skipTo: int 
     task_templ = DumpPageParams(dumpDir=dump_dir, doku_url=doku_url, session=session, get_source=get_source, current_only=current_only,
                           title_index=-999, title="dokuwikidumper_placehold")
 
-    for title in titles:
+    for index, title in enumerate(titles):
         if sub_thread_error:
             raise sub_thread_error
 
-        title_index += 1
         task = copy.copy(task_templ)
-        task.title_index = title_index
+        task.title_index = index
         task.title = title
         tasks_queue.put(task)
-        print('Content: (%d/%d): [[%s]] ...' % (title_index+1, len(titles), title))
+        print('Content: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
 
     for _ in range(threads):
         tasks_queue.put(POSION)

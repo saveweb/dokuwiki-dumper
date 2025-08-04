@@ -1,4 +1,4 @@
-from .dump.dokuDumper import dump
+from .dump.doku_dumper import dump
 
 def main():
     dump()

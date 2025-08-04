@@ -3,7 +3,7 @@ import threading
 import time
 import requests
 from dokuWikiDumper.dump.content.revisions import get_revisions
-from dokuWikiDumper.dump.content.titles import get_titles
+from dokuWikiDumper.dump.content.titles import load_get_save_titles
 from dokuWikiDumper.utils.util import load_titles, smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 
@@ -15,26 +15,15 @@ PDF_OLDPAGE_DIR = PDF_DIR + 'attic/'
 
 sub_thread_error = None
 
-def dump_PDF(doku_url, dumpDir,
-                  session: requests.Session, skipTo: int = 0, threads: int = 1,
+def dump_PDF(doku_url, dump_dir,
+                  session: requests.Session, threads: int = 1,
                   ignore_errors: bool = False, current_only: bool = False):
-
-    titles = load_titles(titlesFilePath=dumpDir + '/dumpMeta/titles.txt')
-    if titles is None:
-        titles = get_titles(url=doku_url, session=session)
-        with uopen(dumpDir + '/dumpMeta/titles.txt', 'w') as f:
-            f.write('\n'.join(titles))
-            f.write('\n--END--\n')
+    titles = load_get_save_titles(dump_dir=dump_dir, url=doku_url, session=session)
     
     if not len(titles):
         print('Empty wiki')
         return False
     
-    index_of_title = -1  # 0-based
-    if skipTo > 0:
-        index_of_title = skipTo - 2
-        titles = titles[skipTo-1:]
-
     def try_to_dump_pdf(*args, **kwargs):
         try:
             _dump_pdf(*args, **kwargs)
@@ -44,20 +33,19 @@ def dump_PDF(doku_url, dumpDir,
                 sub_thread_error = e
                 raise e
             print('[',args[1]+1,']Error in sub thread: (', e, ') ignored')
-    for title in titles:
+    for index, title in enumerate(titles):
         while threading.active_count() > threads:
             time.sleep(0.1)
         if sub_thread_error:
             raise sub_thread_error
 
-        index_of_title += 1
-        t = threading.Thread(target=try_to_dump_pdf, args=(dumpDir,
-                                                    index_of_title,
+        t = threading.Thread(target=try_to_dump_pdf, args=(dump_dir,
+                                                    index,
                                                     title,
                                                     doku_url,
                                                     session,
                                                     current_only))
-        print('PDF: (%d/%d): [[%s]] ...' % (index_of_title+1, len(titles), title))
+        print('PDF: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
         t.daemon = True
         t.start()
 

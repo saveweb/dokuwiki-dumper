@@ -218,19 +218,19 @@ def test_url2prefix():
         assert url2prefix(url, ascii_slugify=True) == prefix
 
 
-def load_titles(titlesFilePath) -> Optional[List[str]]:
+def load_titles(titles_file_path) -> Optional[List[str]]:
     """ Load titles from dump directory
 
     Return:
         `list[str]`: titles
         `None`: titles file does not exist or incomplete
      """
-    if os.path.exists(titlesFilePath):
-        with uopen(titlesFilePath, 'r') as f:
+    if os.path.exists(titles_file_path):
+        with uopen(titles_file_path, 'r') as f:
             titles = f.read().splitlines()
         if len(titles) and titles[-1] == '--END--':
             print('Loaded %d titles from %s' %
-                  (len(titles) - 1, titlesFilePath))
+                  (len(titles) - 1, titles_file_path))
             return titles[:-1]  # remove '--END--'
 
     return None

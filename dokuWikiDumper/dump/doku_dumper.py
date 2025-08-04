@@ -27,7 +27,7 @@ from dokuWikiDumper.dump.content.content import dump_content
 from dokuWikiDumper.dump.html.html import dump_HTML
 from dokuWikiDumper.dump.info.info import update_info
 from dokuWikiDumper.dump.media.media import dump_media
-from dokuWikiDumper.dump.pdf import dump_PDF
+from dokuWikiDumper.dump.pdf.pdf import dump_PDF
 from dokuWikiDumper.utils.config import update_config, runtime_config
 from dokuWikiDumper.utils.patch import SessionMonkeyPatch
 from dokuWikiDumper.utils.session import create_session, load_cookies, login_dokuwiki
@@ -50,8 +50,9 @@ def getArgumentParser():
 
     parser.add_argument('--current-only', dest='current_only', action='store_true',
                         help='Dump latest revision, no history [default: false]')
-    parser.add_argument(
-        '--skip-to', help='!DEV! Skip to title number [default: 0]', type=int, default=0)
+    # TODO: add back
+    # parser.add_argument(
+    #     '--skip-to', help='!DEV! Skip to title number [default: 0]', type=int, default=0)
     parser.add_argument(
         '--path', help='Specify dump directory [default: <site>-<date>]', type=str, default='')
     parser.add_argument(
@@ -109,9 +110,6 @@ def checkArgs(args):
         return False
     if not args.url:
         print('No URL specified.')
-        return False
-    if args.skip_to < 0:
-        print('Skip to number must be >= 0.')
         return False
     if args.threads < 1:
         print('Number of threads must be >= 1.')
@@ -185,7 +183,6 @@ def dump():
     if not args.user_love_retro:
         dokuWikiDumper_outdated_check()
     url_input = args.url
-    skip_to = args.skip_to
 
     session = create_session(retries=args.retry, user_agent=args.user_agent)
 
@@ -259,7 +256,7 @@ def dump():
             else:
                 print('\nDumping content...\n')
                 dump_content(doku_url=doku_url, dump_dir=dump_dir,
-                            session=session, skipTo=skip_to, threads=args.threads,
+                            session=session, threads=args.threads,
                             ignore_errors=args.ignore_errors,
                             ignore_action_disabled_edit=args.ignore_action_disabled_edit,
                             current_only=args.current_only)
@@ -270,8 +267,8 @@ def dump():
                 print('HTML already dumped.')
             else:
                 print('\nDumping HTML...\n')
-                dump_HTML(doku_url=doku_url, dumpDir=dump_dir,
-                        session=session, skipTo=skip_to, threads=args.threads,
+                dump_HTML(doku_url=doku_url, dump_dir=dump_dir,
+                        session=session, threads=args.threads,
                         ignore_errors=args.ignore_errors, current_only=args.current_only)
                 with open(os.path.join(dump_dir, 'html_dumped.mark'), 'w') as f:
                     f.write('done')
@@ -290,7 +287,7 @@ def dump():
                 print('PDF already dumped.')
             else:
                 print('\nDumping PDF...\n')
-                dump_PDF(doku_url=base_url, dumpDir=dump_dir,
+                dump_PDF(doku_url=base_url, dump_dir=dump_dir,
                         session=session, threads=args.threads,
                         ignore_errors=args.ignore_errors, current_only=True)
                         # to avoid overload the server, we only dump the current revision of the PDF.
