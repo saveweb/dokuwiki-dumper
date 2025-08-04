@@ -300,7 +300,6 @@ def dump():
 
     if args.upload and args.auto:
         print('Uploading to Internet Archive...')
-        # from dokuWikiUploader.uploader import upload
         from subprocess import call
         time.sleep(5)
         retcode = call([sys.executable, '-m', 'dokuWikiUploader.uploader', dump_dir] + args.uploader_args,
