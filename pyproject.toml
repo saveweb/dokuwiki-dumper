@@ -1,7 +1,7 @@
-[tool.pdm.build]
-includes = ["dokuWikiDumper/**/*", "dokuWikiUploader/**/*"]
-
 [project]
+name = "dokuWikiDumper"
+version = "0.1.48"
+description = "A tool for archiving DokuWiki"
 authors = [
     {name = "yzqzss", email = "yzqzss@yandex.com"},
 ]
@@ -16,9 +16,6 @@ dependencies = [
     "python-slugify<9.0.0,>=8.0.4",
     "typing-extensions<5.0.0,>=4.13.2",
 ]
-name = "dokuWikiDumper"
-version = "0.1.48"
-description = "A tool for archiving DokuWiki"
 readme = "README.md"
 
 [project.urls]
@@ -38,3 +35,6 @@ dev = [
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.build]
+includes = ["dokuWikiDumper/**/*", "dokuWikiUploader/**/*"]

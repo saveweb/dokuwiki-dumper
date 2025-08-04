@@ -99,7 +99,7 @@ def getArgumentParser():
     parser.add_argument('--force', action='store_true', help='To dump even if a recent dump exists on IA')
     parser.add_argument('--user-agent', dest="user_agent", type=str,
                         default='dokuWikiDumper/' + DUMPER_VERSION + ' (https://github.com/saveweb/dokuwiki-dumper)',
-                        help=f'The User-Agent to use when making requests [default: dokuWikiDumper/{DUMPER_VERSION} ...]')
+                        help=argparse.SUPPRESS)
 
     return parser
 
