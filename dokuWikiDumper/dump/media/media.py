@@ -1,8 +1,12 @@
+import copy
+from dataclasses import dataclass
 import os
+import queue
 import re
 import threading
 import time
 import urllib.parse as urlparse
+from typing import Optional
 
 from bs4 import BeautifulSoup
 import requests
@@ -11,9 +15,16 @@ from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.config import runtime_config
 
-
-
 sub_thread_error = None
+
+@dataclass
+class DumpMediaParams:
+    dump_dir: str
+    title: str
+    title_index: int
+    base_url: str
+    session: requests.Session
+    fetch_url: str
 
 
 def getFiles(url, ns: str = '',  dumpDir: str = '', session: requests.Session=None):
@@ -66,89 +77,107 @@ def getFiles(url, ns: str = '',  dumpDir: str = '', session: requests.Session=No
     return files
 
 
-def dump_media(base_url: str = '', dumpDir: str = '', session=None, threads: int = 1, ignore_errors: bool = False):
-    if not dumpDir:
-        raise ValueError('dumpDir must be set')
+def dump_media(*, base_url: str, dumpDir: str, session: requests.Session, threads: int = 1, ignore_errors: bool = False):
 
     smkdirs(dumpDir + '/media')
-    # smkdirs(dumpDir + '/media_attic')
-    # smkdirs(dumpDir + '/media_meta')
 
     fetch = urlparse.urljoin(base_url, 'lib/exe/fetch.php')
     # media_repo = urlparse.urljoin(base_url, '_media')
 
     files = getFiles(base_url, dumpDir=dumpDir, session=session)
-    def try_download(*args, **kwargs):
-        try:
-            download(*args, **kwargs)
-        except Exception as e:
-            if not ignore_errors:
-                global sub_thread_error
-                sub_thread_error = e
-                raise e
-            print(threading.current_thread().name, 'Error in sub thread: (', e, ') ignored')
-    index_of_title = -1
-    for title in files:
-        index_of_title += 1
-        while threading.active_count() > threads:
-            time.sleep(0.1)
+
+    tasks_queue: queue.Queue[Optional[DumpMediaParams]] = queue.Queue(maxsize=threads)
+
+    workers: list[threading.Thread] = []
+    # spawn workers
+    for _ in range(threads):
+        t = threading.Thread(target=dump_media_worker, args=(tasks_queue, ignore_errors))
+        t.daemon = True
+        t.start()
+        workers.append(t)
+
+    task_templ = DumpMediaParams(dump_dir=dumpDir, base_url=base_url, session=session, fetch_url=fetch,
+                                title_index=-999, title="dokuwikidumper_placehold")
+
+    for index, title in enumerate(files):
         if sub_thread_error:
             raise sub_thread_error
-        print('Media: (%d/%d): [[%s]] ...' % (index_of_title+1, len(files), title))
 
-        def download(title, session: requests.Session):
-            child_path = title.replace(':', '/')
-            child_path = child_path.lstrip('/')
-            child_path = '/'.join(child_path.split('/')[:-1])
-            smkdirs(dumpDir + '/media/' + child_path)
-            file = dumpDir + '/media/' + title.replace(':', '/')
-            local_size = -1
-            if os.path.exists(file):
-                local_size = os.path.getsize(file)
-            with session.get(fetch, params={'media': title},
-                            stream=True, headers={'Referer': base_url}
-                            ) as r:
-                r.raise_for_status()
+        task = copy.copy(task_templ)
+        task.title_index = index
+        task.title = title
+        tasks_queue.put(task)
+        print('Media: (%d/%d): [[%s]] ...' % (index+1, len(files), title))
 
-                if local_size == -1:  # file does not exist
-                    to_download = True
-                else:
-                    remote_size = int(r.headers.get('Content-Length', -2))
-                    if local_size == remote_size:  # file exists and is complete
-                        print(threading.current_thread().name,
-                              'File [[%s]] exists (%d bytes)' % (title, local_size))
-                        to_download = False
-                    elif remote_size == -2:
-                        print(threading.current_thread().name,
-                          'File [[%s]] cannot get remote size ("Content-Length" missing), ' % title +
-                          'will re-download anyway')
-                        to_download = True
-                    else:
-                        to_download = True  # file exists but is incomplete
+    for _ in range(threads):
+        tasks_queue.put(None)
 
-                if to_download:
-                    with open(file, 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                        print(threading.current_thread().name,
-                              'File [[%s]] Done' % title)
-                # modify mtime based on Last-Modified header
-                last_modified = r.headers.get('Last-Modified', None)
-                if last_modified:
-                    mtime = time.mktime(time.strptime(
-                        last_modified, '%a, %d %b %Y %H:%M:%S %Z'))
-                    atime = os.stat(file).st_atime
-                    # atime is not modified
-                    os.utime(file, times=(atime, mtime))
-                    # print(atime, mtime)
+    tasks_queue.join()
 
-            # time.sleep(1.5)
+    for w in workers:
+        w.join()
 
-        t = threading.Thread(target=try_download, daemon=True,
-                             args=(title, session))
-        t.start()
+    if sub_thread_error:
+        raise sub_thread_error
 
-    while threading.active_count() > 1:
-        time.sleep(2)
-        print('Waiting for %d threads to finish' %
-              (threading.active_count() - 1), end='\r')
+
+def dump_media_worker(tasks_queue: queue.Queue[Optional[DumpMediaParams]], ignore_errors: bool):
+    global sub_thread_error
+    while task := tasks_queue.get():
+        try:
+            download_media_file(task)
+        except Exception as e:
+            if not ignore_errors:
+                sub_thread_error = e
+                raise e
+            else:
+                print('[',task.title_index,'] Error in sub thread: (', e, ') ignored')
+        finally:
+            tasks_queue.task_done()
+    tasks_queue.task_done()
+
+
+def download_media_file(task: DumpMediaParams):
+    child_path = task.title.replace(':', '/')
+    child_path = child_path.lstrip('/')
+    child_path = '/'.join(child_path.split('/')[:-1])
+    smkdirs(task.dump_dir + '/media/' + child_path)
+    file = task.dump_dir + '/media/' + task.title.replace(':', '/')
+    local_size = -1
+    if os.path.exists(file):
+        local_size = os.path.getsize(file)
+    with task.session.get(task.fetch_url, params={'media': task.title},
+                    stream=True, headers={'Referer': task.base_url}
+                    ) as r:
+        r.raise_for_status()
+
+        if local_size == -1:  # file does not exist
+            to_download = True
+        else:
+            remote_size = int(r.headers.get('Content-Length', -2))
+            if local_size == remote_size:  # file exists and is complete
+                print('[%d] File [[%s]] exists (%d bytes)' % (task.title_index+1, task.title, local_size))
+                to_download = False
+            elif remote_size == -2:
+                print('[%d] File [[%s]] cannot get remote size ("Content-Length" missing), ' % (task.title_index+1, task.title) +
+                      'will re-download anyway')
+                to_download = True
+            else:
+                to_download = True  # file exists but is incomplete
+
+        if to_download:
+            with open(file, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                print('[%d] File [[%s]] Done' % (task.title_index+1, task.title))
+        else:
+            r.close()
+
+        # modify mtime based on Last-Modified header
+        last_modified = r.headers.get('Last-Modified', None)
+        if last_modified:
+            mtime = time.mktime(time.strptime(
+                last_modified, '%a, %d %b %Y %H:%M:%S %Z'))
+            atime = os.stat(file).st_atime
+            # atime is not modified
+            os.utime(file, times=(atime, mtime))
