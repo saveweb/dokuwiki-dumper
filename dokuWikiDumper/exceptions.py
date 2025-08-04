@@ -84,7 +84,7 @@ class RevisionListNotFound(Exception):
 
 
 def show_edge_case_warning(**context):
-    if int(os.environ.get('EDGECASE_OK', '0')):
+    if os.environ.get('EDGECASE_OK'):
         return
 
     print(
@@ -100,5 +100,5 @@ def show_edge_case_warning(**context):
     print("FUNC:", f'{calledfrom.filename}:{calledfrom.lineno} ', "FUNC:", calledfrom.name)
     print("CONTEXT:", context)
     print("------------------------------------------")
-    print("To continue executing the edge case code, re-run with --edgecase-ok")
+    print("To continue executing the edge case code, re-run with environment variable EDGECASE_OK=1 set.")
     sys.exit(13)
