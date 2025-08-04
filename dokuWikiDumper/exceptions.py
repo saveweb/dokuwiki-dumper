@@ -27,14 +27,6 @@ class DispositionHeaderMissingError(Exception):
 
     def __str__(self):
         return "Disposition header missing, URL: %s" % self.url
-    
-class ContentTypeHeaderNotTextPlain(Exception):
-    def __init__(self, r):
-        self.url = r.url
-
-    def __str__(self):
-        return "Content-Type is not text/plain, URL: %s" % self.url
-
 
 class ActionExportRawDisabled(Exception):
     def __init__(self, title):

@@ -12,7 +12,7 @@ from typing import List, Optional, TypedDict
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ActionRevisionsDisabled, ContentTypeHeaderNotTextPlain, DispositionHeaderMissingError, HTTPStatusError, RevisionListNotFound, show_edge_case_warning
+from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ActionRevisionsDisabled, DispositionHeaderMissingError, HTTPStatusError, RevisionListNotFound, show_edge_case_warning
 from dokuWikiDumper.utils.util import check_int, print_with_lock as print, smkdirs, uopen
 from dokuWikiDumper.utils.config import runtime_config
 
