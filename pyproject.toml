@@ -1,6 +1,6 @@
 [project]
 name = "dokuWikiDumper"
-version = "0.1.48"
+version = "0.2.0"
 description = "A tool for archiving DokuWiki"
 authors = [
     {name = "yzqzss", email = "yzqzss@yandex.com"},
@@ -37,4 +37,4 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [tool.pdm.build]
-includes = ["dokuWikiDumper/**/*", "dokuWikiUploader/**/*"]
+includes = ["dokuWikiDumper", "dokuWikiUploader"]
