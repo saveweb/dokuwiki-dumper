@@ -1,4 +1,3 @@
-import os
 import urllib.parse as urlparse
 from bs4 import BeautifulSoup
 import requests
@@ -70,7 +69,7 @@ def get_titles(url, ns=None, session: requests.Session=None, use_legacy_method=N
     return titles
 
 
-def get_titles_legacy(url, ns=None, ancient=False, session:requests.Session=None):
+def get_titles_legacy(url, ns=None, session:requests.Session=None):
     """Get titles using the doku.php?do=index"""
 
     titles = []
@@ -83,7 +82,6 @@ def get_titles_legacy(url, ns=None, ancient=False, session:requests.Session=None
 
     r = session.get(url, params=params)
     soup = BeautifulSoup(r.text, runtime_config.html_parser).find_all('ul', {'class': 'idx'})[0]
-    attr = 'text' if ancient else 'title'
 
     if ns:
         print('%sSearching in namespace %s' % (' ' * depth, ns))
