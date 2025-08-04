@@ -1,6 +1,10 @@
+import copy
+from dataclasses import dataclass
 import os
+import queue
 import threading
-import time
+from typing import Optional
+
 import requests
 from dokuWikiDumper.dump.content.revisions import get_revisions
 from dokuWikiDumper.dump.content.titles import load_get_save_titles
@@ -15,6 +19,16 @@ PDF_OLDPAGE_DIR = PDF_DIR + 'attic/'
 
 sub_thread_error = None
 
+
+@dataclass
+class DumpPDFParams:
+    dump_dir: str
+    title: str
+    title_index: int
+    doku_url: str
+    session: requests.Session
+    current_only: bool
+
 def dump_PDF(doku_url, dump_dir,
                   session: requests.Session, threads: int = 1,
                   ignore_errors: bool = False, current_only: bool = False):
@@ -24,75 +38,97 @@ def dump_PDF(doku_url, dump_dir,
         print('Empty wiki')
         return False
     
-    def try_to_dump_pdf(*args, **kwargs):
-        try:
-            _dump_pdf(*args, **kwargs)
-        except Exception as e:
-            if not ignore_errors:
-                global sub_thread_error
-                sub_thread_error = e
-                raise e
-            print('[',args[1]+1,']Error in sub thread: (', e, ') ignored')
+    tasks_queue: queue.Queue[Optional[DumpPDFParams]] = queue.Queue(maxsize=threads)
+
+    workers: list[threading.Thread] = []
+    # spawn workers
+    for _ in range(threads):
+        t = threading.Thread(target=dump_pdf_worker, args=(tasks_queue, ignore_errors))
+        t.daemon = True
+        t.start()
+        workers.append(t)
+
+    task_templ = DumpPDFParams(dump_dir=dump_dir, doku_url=doku_url, session=session, current_only=current_only,
+                              title_index=-999, title="dokuwikidumper_placehold")
+
     for index, title in enumerate(titles):
-        while threading.active_count() > threads:
-            time.sleep(0.1)
         if sub_thread_error:
             raise sub_thread_error
 
-        t = threading.Thread(target=try_to_dump_pdf, args=(dump_dir,
-                                                    index,
-                                                    title,
-                                                    doku_url,
-                                                    session,
-                                                    current_only))
+        task = copy.copy(task_templ)
+        task.title_index = index
+        task.title = title
+        tasks_queue.put(task)
         print('PDF: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
-        t.daemon = True
-        t.start()
 
-    while threading.active_count() > 1:
-        time.sleep(2)
-        print('Waiting for %d threads to finish' %
-            (threading.active_count() - 1), end='\r')
+    for _ in range(threads):
+        tasks_queue.put(None)
 
-def _dump_pdf(dumpDir, index_of_title: int, title: str, doku_url, session: requests.Session, current_only: bool = False):
-    msg_header = '['+str(index_of_title + 1)+']: '
-    file = dumpDir + '/' + PDF_PAGR_DIR + title.replace(':', '/') + '.pdf'
+    tasks_queue.join()
+
+    for w in workers:
+        w.join()
+
+    if sub_thread_error:
+        raise sub_thread_error
+
+
+def dump_pdf_worker(tasks_queue: queue.Queue[Optional[DumpPDFParams]], ignore_errors: bool):
+    global sub_thread_error
+    while task := tasks_queue.get():
+        try:
+            dump_pdf_page(task)
+        except Exception as e:
+            if not ignore_errors:
+                sub_thread_error = e
+                raise e
+            else:
+                print('[',task.title_index+1,'] Error in sub thread: (', e, ') ignored')
+        finally:
+            tasks_queue.task_done()
+    tasks_queue.task_done()
+
+
+def dump_pdf_page(task: DumpPDFParams):
+    msg_header = '['+str(task.title_index + 1)+']: '
+
+    file = task.dump_dir + '/' + PDF_PAGR_DIR + task.title.replace(':', '/') + '.pdf'
     local_size = -1
     if os.path.isfile(file):
         local_size = os.path.getsize(file)
-    with session.get(doku_url, params={'do': 'export_pdf', 'id': title}, stream=True) as r:
+    with task.session.get(task.doku_url, params={'do': 'export_pdf', 'id': task.title}, stream=True) as r:
         r.raise_for_status()
         if 'Content-Disposition' not in r.headers:
             raise DispositionHeaderMissingError(r)
         remote_size = r.headers.get('Content-Length', -2)
 
         if local_size == remote_size:
-            print(msg_header, '[[%s]]' % title, 'already exists')
+            print(msg_header, '[[%s]]' % task.title, 'already exists')
         else:
-            child_path = title.replace(':', '/')
+            child_path = task.title.replace(':', '/')
             child_dir = os.path.dirname(child_path)
-            smkdirs(dumpDir, PDF_PAGR_DIR, child_dir)
+            smkdirs(task.dump_dir, PDF_PAGR_DIR, child_dir)
             with open(file, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-            print(msg_header, '[[%s]]' % title, 'saved')
-    
-    if current_only:
+            print(msg_header, '[[%s]]' % task.title, 'saved')
+
+    if task.current_only:
         return True
 
-    revs = get_revisions(doku_url=doku_url, session=session, title=title, msg_header=msg_header)
+    revs = get_revisions(doku_url=task.doku_url, session=task.session, title=task.title, msg_header=msg_header)
 
     for rev in revs[1:]:
         if 'id' in rev and rev['id']:
             try:
-                r = session.get(doku_url, params={'do': 'export_pdf', 'id': title, 'rev': rev['id']})
+                r = task.session.get(task.doku_url, params={'do': 'export_pdf', 'id': task.title, 'rev': rev['id']})
                 r.raise_for_status()
                 content = r.content
-                smkdirs(dumpDir, PDF_OLDPAGE_DIR, child_dir)   
-                old_pdf_path = dumpDir + '/' + PDF_OLDPAGE_DIR + child_path + '.' + rev['id'] + '.pdf'
+                smkdirs(task.dump_dir, PDF_OLDPAGE_DIR, child_dir)
+                old_pdf_path = task.dump_dir + '/' + PDF_OLDPAGE_DIR + child_path + '.' + rev['id'] + '.pdf'
 
                 with open(old_pdf_path, 'bw') as f:
                     f.write(content)
-                print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], title))
+                print(msg_header, '    Revision %s of [[%s]] saved.' % (rev['id'], task.title))
             except requests.HTTPError as e:
-                print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], title, e))
+                print(msg_header, '    Revision %s of [[%s]] failed: %s' % (rev['id'], task.title, e))
