@@ -46,27 +46,8 @@ Our bots are running on the following IPs: [wikiteam3.txt](https://static.savewe
 > <https://pypi.org/project/dokuwikidumper/>
 
 ```bash
-pip3 install dokuWikiDumper
+pip3 install dokuWikiDumper --upgrade
 ```
-
-### Install `dokuWikiDumper` with `Poetry` (for developers)
-
-- Install `Poetry`
-
-    ```bash
-    pip3 install poetry
-    ```
-
-- Install `dokuWikiDumper`
-
-    ```bash
-    git clone https://github.com/saveweb/dokuwiki-dumper
-    cd dokuwiki-dumper
-    poetry install
-    rm dist/ -rf
-    poetry build
-    pip install --force-reinstall dist/dokuWikiDumper*.whl
-    ```
 
 ## Usage
 
