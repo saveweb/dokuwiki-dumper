@@ -1,6 +1,6 @@
 [project]
 name = "dokuWikiDumper"
-version = "0.2.0"
+version = "0.2.1"
 description = "A tool for archiving DokuWiki"
 authors = [
     {name = "yzqzss", email = "yzqzss@yandex.com"},
