@@ -2,8 +2,6 @@
 includes = ["dokuWikiDumper/**/*", "dokuWikiUploader/**/*"]
 
 [project]
-# PEP 621 project metadata
-# See https://www.python.org/dev/peps/pep-0621/
 authors = [
     {name = "yzqzss", email = "yzqzss@yandex.com"},
 ]
