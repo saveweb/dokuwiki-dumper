@@ -1,40 +1,40 @@
-[tool.poetry]
+[project]
 name = "dokuWikiDumper"
 version = "0.1.48"
 description = "A tool for archiving DokuWiki"
-authors = ["yzqzss <yzqzss@yandex.com>"]
-license = "GPL-3.0"
+authors = [
+    {name = "yzqzss", email = "yzqzss@yandex.com"},
+]
+license = {text = "GPL-3.0"}
+requires-python = "<4.0,>=3.9"
+dependencies = [
+    "requests<3.0.0,>=2.32.2",
+    "beautifulsoup4<5.0.0,>=4.13.4",
+    "lxml<6.0.0,>=5.4.0",
+    "internetarchive<6.0.0,>=5.4.0",
+    "rich<15.0.0,>=14.0.0",
+    "python-slugify<9.0.0,>=8.0.4",
+    "typing-extensions<5.0.0,>=4.13.2",
+]
 readme = "README.md"
 
-packages = [
-    { include = "dokuWikiDumper/**/*" },
-    { include = "dokuWikiUploader/**/*" },
-]
-
-[tool.poetry.urls]
+[project.urls]
 "Bug Tracker" = "https://github.com/saveweb/dokuwiki-dumper/issues"
-"repository" = "https://github.com/saveweb/dokuwiki-dumper/"
+repository = "https://github.com/saveweb/dokuwiki-dumper/"
 
-[tool.poetry.dependencies]
-python = "^3.8.1"
-requests = "^2.32.2"
-beautifulsoup4 = "^4.11.2"
-lxml = "^5.2.0"
-internetarchive = "^5.0.3"
-rich = "^13.4.2"
-python-slugify = "^8.0.1"
-typing-extensions = "^4.12.2"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.0"
-flake8 = "^7.0.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 dokuWikiDumper = "dokuWikiDumper:main"
 dokuWikiUploader = "dokuWikiUploader:main"
 
+[dependency-groups]
+dev = [
+    "pytest<9.0.0,>=8.3.0",
+    "flake8<8.0.0,>=7.0.0",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm.build]
+includes = ["dokuWikiDumper/**/*", "dokuWikiUploader/**/*"]

@@ -5,66 +5,73 @@ import re
 from ipaddress import ip_address, IPv4Address, IPv6Address
 import time
 import urllib.parse as urlparse
+import logging
+
+from typing import List, Optional, TypedDict
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ContentTypeHeaderNotTextPlain, DispositionHeaderMissingError, HTTPStatusError
+from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ActionRevisionsDisabled, ContentTypeHeaderNotTextPlain, DispositionHeaderMissingError, HTTPStatusError, RevisionListNotFound, show_edge_case_warning
 from dokuWikiDumper.utils.util import check_int, print_with_lock as print, smkdirs, uopen
-from dokuWikiDumper.utils.config import running_config
+from dokuWikiDumper.utils.config import runtime_config
 
 
-# args must be same as getSourceEdit(), even if not used
-def getSourceExport(url, title, rev='', session: requests.Session = None, 
-                    ignore_disposition_header_missing: bool=False):
+logger = logging.getLogger(__name__)
+
+# args must be same as get_source_edit(), even if not used
+def get_source_export(url: str, title: str, rev: str = '', *, session: requests.Session):
     """Export the raw source of a page (at a given revision)"""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'export_raw'})
     if r.status_code != 200:
         raise HTTPStatusError(r)
-    if ('Content-Disposition' not in r.headers) and (not ignore_disposition_header_missing):
-        raise DispositionHeaderMissingError(r)
-    if 'text/plain' not in r.headers.get('content-type'):
-        raise ContentTypeHeaderNotTextPlain(r)
 
-    return r.text
+    disposition_ok = 'Content-Disposition' in r.headers
+    content_type_ok = 'text/plain' in r.headers.get('content-type', '')
+    if disposition_ok or content_type_ok:
+        return r.text
+
+    raise DispositionHeaderMissingError(r)
 
 
-# args must be same as getSourceExport(), even if not used
-def getSourceEdit(url, title, rev='', session: requests.Session = None,
-                  ignore_disposition_header_missing: bool=False):
+# args must be same as get_source_export(), even if not used
+def get_source_edit(url: str, title: str, rev: str = '', *, session: requests.Session):
     """Export the raw source of a page by scraping the edit box content. Yuck."""
 
     r = session.get(url, params={'id': title, 'rev': rev, 'do': 'edit'})
-    soup = BeautifulSoup(r.text, running_config.html_parser)
+    soup = BeautifulSoup(r.text, runtime_config.html_parser)
     source = None
-    try:
-        source = ''.join(soup.find('textarea', {'name': 'wikitext'}).text).strip()
-    except AttributeError as e:
-        if 'Action disabled: source' in r.text:
-            raise ActionEditDisabled(title)
-    
-    if not source:
+
+    textarea = soup.find('textarea', {'name': 'wikitext'})
+    if textarea:
+        source = ''.join(textarea.text).strip()
+    elif 'Action disabled: source' in r.text:
+        raise ActionEditDisabled(title)
+    else:
         raise ActionEditTextareaNotFound(title)
 
     return source
 
+class Revision(TypedDict):
+    """ (None if not found or failed) """
+    id: Optional[str]
+    user: Optional[str]
+    sum: Optional[str]
+    date: Optional[str]
+    minor: bool
+    """ default: False """
+    sizechange: int
+    """ default: 0 """
 
-def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, session: requests.Session = None, msg_header: str = ''):
+def get_revisions(doku_url, title: str, session: requests.Session, msg_header: str = '')->List[Revision]:
     """ Get the revisions of a page. This is nontrivial because different versions of DokuWiki return completely different revision HTML.
 
-    Returns a dict with the following keys: (None if not found or failed)
-    - id: str|None
-    - user: str|None
-    - sum: str|None
-    - date: str|None
-    - minor: bool
+    Returns a dict with the following keys:
     """
 
-    use_hidden_rev = True  # temp fix
-    select_revs = False  # temp fix
-    revs = []
-    rev_tmplate = {
+    revs: List[Revision] = []
+    rev_tmplate: Revision = {
         'id': None, # str(int)
         'user': None, # str
         'sum': None, # str
@@ -72,24 +79,6 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
         'minor': False, # bool
         'sizechange': 0,
     }
-
-    # if select_revs:
-    if False:  # disabled, it's not stable.
-        r = session.get(doku_url, params={'id': title, 'do': 'diff'})
-        soup = BeautifulSoup(r.text, running_config.html_parser)
-        select = soup.find(
-            'select', {
-                'class': 'quickselect', 'name': 'rev2[1]'})
-        for option in select.findAll('option'):
-            text = option.text
-            date = ' '.join(text.split(' ')[:2])
-            username = len(text.split(' ')) > 2 and text.split(' ')[2]
-            summary = ' '.join(text.split(' ')[3:])
-
-            revs.append({'id': option['value'],
-                        'user': username,
-                         'sum': summary,
-                         'date': date})
 
     i = 0
     continue_index = -1
@@ -101,73 +90,85 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
             params={
                 'id': title,
                 'do': 'revisions',
-                'first': continue_index})
+                'first': str(continue_index)})
 
-        soup = BeautifulSoup(r.text, running_config.html_parser)
+        soup = BeautifulSoup(r.text, runtime_config.html_parser)
 
-        try:
-            lis = soup.find('form', {'id': 'page__revisions'}).find(
-                'ul').findAll('li')
-        except AttributeError:
-            # outdate dokuwiki version? try another way.
-            try:
-                lis = soup.find('div', {'class': 'page'}).find(
-                    'ul').findAll('li')
-            except:
-                # still fail
-                print(msg_header, 'Error: cannot find revisions list.')
-                raise
+        lis = None
+
+        # check if form#page__revisions exists
+        if page__revisions := soup.find('form', {'id': 'page__revisions'}):
+            logger.debug('page__revisions: %s', page__revisions)
+            if ul := page__revisions.find('ul'):
+                assert isinstance(ul, Tag)
+                lis = ul.find_all('li')
+
+        # outdate dokuwiki version? try another way.
+        if div_page := soup.find('div', {'class': 'page'}):
+            logger.debug('div.page: %s', div_page)
+            if ul := div_page.find('ul'):
+                assert isinstance(ul, Tag)
+                lis = ul.find_all('li')
+
+        if lis is None:
+            if err_msg := soup.find('div', {'class': 'error'}):
+                if 'Action disabled: revisions' in err_msg.text:
+                    raise ActionRevisionsDisabled(title)
+
+            raise RevisionListNotFound(title)
+
+        assert lis is not None
 
         for li in lis:
+            li: Tag
             rev = {}
 
             checkbox = li.find('input', {'type': 'checkbox'})
-            rev_hrefs = li.findAll(
-                'a', href=lambda href: href and (
+            rev_hrefs = li.find_all(
+                'a', href=lambda href: isinstance(href, str) and (
                     '&rev=' in href or '?rev=' in href))
 
             # id: optional(str(id)): rev_id, not title name.
-            if checkbox and rev.get('id', None) is None:
-                rev['id'] = checkbox.get('value', None)
-                rev['id'] = check_int(rev['id'])
+            if checkbox:
+                rev['id'] = check_int(checkbox.get('value', None))
 
             if rev_hrefs and rev.get('id', None) is None:
                 obj1 = rev_hrefs[0]['href']
                 obj2 = urlparse.urlparse(obj1).query
                 obj3 = urlparse.parse_qs(obj2)
                 if 'rev' in obj3:
-                    rev['id'] = obj3['rev'][0]
-                    rev['id'] = check_int(rev['id'])
+                    rev['id'] = check_int(obj3['rev'][0])
                 else:
                     rev['id'] = None
                 del (obj1, obj2, obj3)
 
-            if use_hidden_rev and rev.get('id', None) is None:
+            # use_hidden_rev
+            if rev.get('id', None) is None:
                 obj1 = li.find('input', {'type': 'hidden'})
                 if obj1 is not None and 'value' in obj1:
-                    rev['id'] = obj1['value']
-                    rev['id'] = check_int(rev['id'])
+                    rev['id'] = check_int(obj1['value'])
                 del (obj1)
 
             # minor: bool
             rev['minor'] = li.has_attr('class') and 'minor' in li['class']
 
             # summary: optional(str)
-            sum_span = li.findAll('span', {'class': 'sum'})
-            if sum_span and not select_revs:
+            sum_span = li.find_all('span', {'class': 'sum'})
+            if sum_span:
                 sum_span = sum_span[0]
                 sum_text = sum_span.text.split(' ')[1:]
-                if sum_span.findAll('bdi'):
+                if sum_span.find_all('bdi'):
                     rev['sum'] = html.unescape(
                         sum_span.find('bdi').text).strip()
                 else:
                     rev['sum'] = html.unescape(' '.join(sum_text)).strip()
-            elif not select_revs:
+            else:
                 print(msg_header, '    ', repr(
                     li.text).replace('\\n', ' ').strip())
                 wikilink1 = li.find('a', {'class': 'wikilink1'})
+                show_edge_case_warning(reason='sum_span not found', r_url=r.url, wikilink1=wikilink1.decode() if wikilink1 else None)
                 text_node = wikilink1 and wikilink1.next and wikilink1.next.next or ''
-                if text_node.strip:
+                if text_node.strip():
                     rev['sum'] = html.unescape(text_node).strip(u'\u2013 \n')
 
             # date: optional(str)
@@ -212,13 +213,13 @@ def getRevisions(doku_url, title, use_hidden_rev=False, select_revs=False, sessi
             # else:
             #     revs.append(rev)
 
-            _rev = {**rev_tmplate, **rev}  # merge dicts
+            _rev: Revision = {**rev_tmplate,**rev}  # merge dicts # type: ignore
             revs.append(_rev)
 
             i += 1
 
         # next page
-        first = soup.findAll('input', {'name': 'first', 'value': True})
+        first = soup.find_all('input', {'name': 'first', 'value': True})
         continue_index = first and max(map(lambda x: int(x['value']), first))
         cont = soup.find('input', {'class': 'button', 'accesskey': 'n'})
         # time.sleep(1.5)
@@ -253,7 +254,7 @@ DATE_FORMATS = ["%Y-%m-%d %H:%M", # <https://www.dokuwiki.org/dokuwiki?do=revisi
                 ]
 """ Why there are so many date formats in the world? :( """
 
-def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
+def save_page_changes(dumpDir, title: str, revs: List[Revision], child_path, msg_header: str):
     changes_file = dumpDir + '/meta/' + title.replace(':', '/') + '.changes'
     if os.path.exists(changes_file):
         print(msg_header, '    meta change file exists:', changes_file)
@@ -264,7 +265,7 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
     # Loop through revisions in reverse.
     for rev in revs[::-1]:
         print(msg_header, '    meta change saving:', rev)
-        summary = 'sum' in rev and rev['sum'].strip() or ''
+        summary = rev['sum'] and rev['sum'].strip() or ''
         rev_id = str(0)
 
         ip = '127.0.0.1'
@@ -280,6 +281,8 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
 
             print(msg_header, '    One revision of [[%s]] missing rev_id. Using date to rebuild...'
                     % title, end=' ')
+            
+            assert rev['date'] is not None, 'unknown rev id and unknown rev date: %s' % rev
 
             for date_format in DATE_FORMATS:
                 try:
@@ -307,7 +310,7 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
 
         revidOfPage.add(rev_id)
 
-        rev['user'] = rev['user'] if 'user' in rev else 'unknown'
+        rev['user'] = rev['user'] if rev['user'] is not None else 'unknown'
         try:
             ip_parsed = ip_address(rev['user'])
             assert isinstance(ip_parsed, (IPv4Address, IPv6Address))
@@ -315,7 +318,7 @@ def save_page_changes(dumpDir, title: str, revs, child_path, msg_header: str):
         except ValueError:
             user = rev['user']
 
-        sizechange = rev['sizechange'] if 'sizechange' in rev else ''
+        sizechange = rev['sizechange'] or ''
 
         extra = ''  # TODO: use this
         # max 255 chars(utf-8) for summary. (dokuwiki limitation)

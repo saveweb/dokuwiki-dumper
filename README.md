@@ -10,13 +10,14 @@ Recommend using `dokuWikiDumper` on _modern_ filesystems, such as `ext4` or `btr
 
 # For webmaster
 
-If you don’t want your wiki to be archived, add the following to your `domain/robots.txt`:
+We crawl every MediaWiki site (with 1.5s crawl-delay) every year and upload to the Internet Archive. If you don’t want your wiki to be archived, add the following to your `<domain>/robots.txt`:
 
 ```robots.txt
 User-agent: dokuWikiDumper
 Disallow: /
 ```
 
+Our bots are running on the following IPs: [wikiteam3.txt](https://static.saveweb.org/bots_ips/wikiteam3.txt) (ips, contact) | [wikiteam3.ips.txt](https://static.saveweb.org/bots_ips/wikiteam3.ips.txt) (ips)
 
 ## Requirements
 
@@ -45,38 +46,18 @@ Disallow: /
 > <https://pypi.org/project/dokuwikidumper/>
 
 ```bash
-pip3 install dokuWikiDumper
+pip3 install dokuWikiDumper --upgrade
 ```
-
-### Install `dokuWikiDumper` with `Poetry` (for developers)
-
-- Install `Poetry`
-
-    ```bash
-    pip3 install poetry
-    ```
-
-- Install `dokuWikiDumper`
-
-    ```bash
-    git clone https://github.com/saveweb/dokuwiki-dumper
-    cd dokuwiki-dumper
-    poetry install
-    rm dist/ -rf
-    poetry build
-    pip install --force-reinstall dist/dokuWikiDumper*.whl
-    ```
 
 ## Usage
 
 ```bash
-usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--skip-to SKIP_TO] [--path PATH] [--no-resume] [--threads THREADS]
-                      [--i-love-retro] [--insecure] [--ignore-errors] [--ignore-action-disabled-edit] [--ignore-disposition-header-missing]
-                      [--trim-php-warnings] [--delay DELAY] [--retry RETRY] [--hard-retry HARD_RETRY] [--parser PARSER] [--username USERNAME]
-                      [--password PASSWORD] [--cookies COOKIES] [--auto] [-u] [-g UPLOADER_ARGS]
+usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--path PATH] [--no-resume] [--threads THREADS] [--i-love-retro] [--insecure] [--ignore-errors] [--ignore-action-disabled-edit] [--trim-php-warnings]
+                      [--export-xhtml-action {export_html,export_xhtml}] [--delay DELAY] [--retry RETRY] [--hard-retry HARD_RETRY] [--parser PARSER] [--username USERNAME] [--password PASSWORD] [--verbose] [--cookies COOKIES] [--auto] [-u]
+                      [-g UPLOADER_ARGS] [--force]
                       url
 
-dokuWikiDumper Version: 0.1.31
+dokuWikiDumper Version: 0.1.48
 
 positional arguments:
   url                   URL of the dokuWiki (provide the doku.php URL)
@@ -84,7 +65,6 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --current-only        Dump latest revision, no history [default: false]
-  --skip-to SKIP_TO     !DEV! Skip to title number [default: 0]
   --path PATH           Specify dump directory [default: <site>-<date>]
   --no-resume           Do not resume a previous dump [default: resume]
   --threads THREADS     Number of sub threads to use [default: 1], not recommended to set > 5
@@ -92,11 +72,10 @@ options:
   --insecure            Disable SSL certificate verification
   --ignore-errors       !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
   --ignore-action-disabled-edit
-                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not found
-                        error.But you may only get a partial dump. (only works with --content)
-  --ignore-disposition-header-missing
-                        Do not check Disposition header, useful for outdated (<2014) DokuWiki versions [default: False]
+                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not found error.But you may only get a partial dump. (only works with --content)
   --trim-php-warnings   Trim PHP warnings from requests.Response.text
+  --export-xhtml-action {export_html,export_xhtml}
+                        HTML export action [default: export_xhtml]
   --delay DELAY         Delay between requests [default: 0.0]
   --retry RETRY         Maximum number of retries [default: 5]
   --hard-retry HARD_RETRY
@@ -104,11 +83,13 @@ options:
   --parser PARSER       HTML parser [default: lxml]
   --username USERNAME   login: username
   --password PASSWORD   login: password
+  --verbose             Verbose output
   --cookies COOKIES     cookies file
   --auto                dump: content+media+html, threads=3, ignore-action-disable-edit. (threads is overridable)
   -u, --upload          Upload wikidump to Internet Archive after successfully dumped (only works with --auto)
   -g UPLOADER_ARGS, --uploader-arg UPLOADER_ARGS
                         Arguments for uploader.
+  --force               To dump even if a recent dump exists on IA
 
 Data to download:
   What info download from the wiki
@@ -116,8 +97,7 @@ Data to download:
   --content             Dump content
   --media               Dump media
   --html                Dump HTML
-  --pdf                 Dump PDF (Only available on some wikis with the PDF export plugin) (Only dumps the latest PDF revision)
-```
+  --pdf                 Dump PDF [default: false] (Only available on some wikis with the PDF export plugin) (Only dumps the latest PDF revision)```
 
 For most cases, you can use `--auto` to dump the site.
 
