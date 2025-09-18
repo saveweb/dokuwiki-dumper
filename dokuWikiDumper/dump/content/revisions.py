@@ -166,10 +166,13 @@ def get_revisions(doku_url, title: str, session: requests.Session, msg_header: s
                 print(msg_header, '    ', repr(
                     li.text).replace('\\n', ' ').strip())
                 wikilink1 = li.find('a', {'class': 'wikilink1'})
-                show_edge_case_warning(reason='sum_span not found', r_url=r.url, wikilink1=wikilink1.decode() if wikilink1 else None)
-                text_node = wikilink1 and wikilink1.next and wikilink1.next.next or ''
+                text_node = wikilink1 and wikilink1.next and wikilink1.next.next or '' # I have no idea what's the propose of this legacy code
                 if text_node.strip():
                     rev['sum'] = html.unescape(text_node).strip(u'\u2013 \n')
+                    show_edge_case_warning(reason='sum_span not found and text_node found', r_url=r.url, rev_sum=rev['sum'],
+                    wikilink1=wikilink1.decode(),
+                    next1=wikilink1.next.decode() if wikilink1.next else None,
+                    next2=wikilink1.next.next.decode() if (wikilink1.next and wikilink1.next.next) else None)
 
             # date: optional(str)
             date_span = li.find('span', {'class': 'date'})
