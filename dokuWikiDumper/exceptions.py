@@ -1,5 +1,4 @@
 import os
-import sys
 import traceback
 
 from dokuWikiDumper.__version__ import DUMPER_VERSION
@@ -101,4 +100,4 @@ def show_edge_case_warning(**context):
     print("CONTEXT:", context)
     print("------------------------------------------")
     print("To continue executing the edge case code, re-run with environment variable EDGECASE_OK=1 set.")
-    sys.exit(13)
+    os._exit(13)
