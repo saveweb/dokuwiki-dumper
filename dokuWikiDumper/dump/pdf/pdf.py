@@ -101,7 +101,7 @@ def dump_pdf_page(task: DumpPDFParams):
         r.raise_for_status()
         if 'Content-Disposition' not in r.headers:
             raise DispositionHeaderMissingError(r)
-        remote_size = r.headers.get('Content-Length', -2)
+        remote_size = int(r.headers.get('Content-Length', -2))
 
         if local_size == remote_size:
             print(msg_header, '[[%s]]' % task.title, 'already exists')
