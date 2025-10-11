@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import os
 import queue
 import threading
-from typing import Optional
+import concurrent.futures
 
 import requests
 from dokuWikiDumper.dump.content.revisions import get_revisions
@@ -17,7 +17,7 @@ PDF_DIR = 'pdf/'
 PDF_PAGR_DIR = PDF_DIR + 'pages/'
 PDF_OLDPAGE_DIR = PDF_DIR + 'attic/'
 
-sub_thread_error = None
+exit_event = threading.Event()
 
 
 @dataclass
@@ -29,6 +29,7 @@ class DumpPDFParams:
     session: requests.Session
     current_only: bool
 
+
 def dump_PDF(doku_url, dump_dir,
                   session: requests.Session, threads: int = 1,
                   ignore_errors: bool = False, current_only: bool = False):
@@ -38,56 +39,62 @@ def dump_PDF(doku_url, dump_dir,
         print('Empty wiki')
         return False
     
-    tasks_queue: queue.Queue[Optional[DumpPDFParams]] = queue.Queue(maxsize=threads)
-
-    workers: list[threading.Thread] = []
-    # spawn workers
-    for i in range(threads):
-        t = threading.Thread(name=f"worker-{i}", target=dump_pdf_worker, args=(tasks_queue, ignore_errors))
-        t.daemon = True
-        t.start()
-        workers.append(t)
-
     task_templ = DumpPDFParams(dump_dir=dump_dir, doku_url=doku_url, session=session, current_only=current_only,
                               title_index=-999, title="dokuwikidumper_placehold")
 
-    for index, title in enumerate(titles):
-        if sub_thread_error:
-            raise sub_thread_error
+    tasks_queue: queue.Queue[DumpPDFParams] = queue.Queue(maxsize=threads)
 
-        task = copy.copy(task_templ)
-        task.title_index = index
-        task.title = title
-        tasks_queue.put(task)
-        print('PDF: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
+    def task_generator():
+        for index, title in enumerate(titles):
+            task = copy.copy(task_templ)
+            task.title_index = index
+            task.title = title
+            tasks_queue.put(task)
+            print('PDF: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
 
-    for _ in range(threads):
-        tasks_queue.put(None)
+            if exit_event.is_set():
+                print('task generator exit (exit event set)')
+                return
 
-    tasks_queue.join()
+        tasks_queue.join()
+        print('All tasks done, terminating workers...')
+        exit_event.set()
 
-    for w in workers:
-        w.join()
-        print('worker %s finished' % w.name)
+    tg_thread = threading.Thread(target=task_generator, name='task-generator')
+    tg_thread.daemon = True
+    tg_thread.start()
 
-    if sub_thread_error:
-        raise sub_thread_error
-
-
-def dump_pdf_worker(tasks_queue: queue.Queue[Optional[DumpPDFParams]], ignore_errors: bool):
-    global sub_thread_error
-    while task := tasks_queue.get():
+    def _dump_pdf_action(task: DumpPDFParams, ignore_errors: bool):
         try:
             dump_pdf_page(task)
         except Exception as e:
             if not ignore_errors:
-                sub_thread_error = e
                 raise e
             else:
                 print('[',task.title_index+1,'] Error in sub thread: (', e, ') ignored')
-        finally:
-            tasks_queue.task_done()
-    tasks_queue.task_done()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = set()
+        while not exit_event.is_set():
+            try:
+                task = tasks_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            f = executor.submit(_dump_pdf_action, task, ignore_errors)
+            f.add_done_callback(lambda f: tasks_queue.task_done())
+            futures.add(f)
+
+            if len(futures) >= threads:
+                _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                for f in _done:
+                    f.result()
+
+        while futures:
+            _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            for f in _done:
+                f.result()
+
+    tg_thread.join()
 
 
 def dump_pdf_page(task: DumpPDFParams):

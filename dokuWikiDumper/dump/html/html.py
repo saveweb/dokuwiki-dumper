@@ -3,9 +3,9 @@ from dataclasses import dataclass
 import os
 import queue
 import threading
-import time
-from typing import Optional
+import concurrent.futures
 import requests
+
 from dokuWikiDumper.dump.content.revisions import get_revisions, save_page_changes
 from dokuWikiDumper.dump.content.titles import load_get_save_titles
 
@@ -17,7 +17,7 @@ HTML_DIR = 'html/'
 HTML_PAGR_DIR = HTML_DIR + 'pages/'
 HTML_OLDPAGE_DIR = HTML_DIR + 'attic/'
 
-sub_thread_error = None
+exit_event = threading.Event()
 
 @dataclass
 class DumpHTMLParams:
@@ -27,6 +27,7 @@ class DumpHTMLParams:
     doku_url: str
     session: requests.Session
     current_only: bool
+
 
 def dump_HTML(doku_url, dump_dir,
                 session: requests.Session, threads: int = 1,
@@ -38,51 +39,64 @@ def dump_HTML(doku_url, dump_dir,
     if not len(titles):
         print('Empty wiki')
         return False
-    
-    tasks_queue: queue.Queue[Optional[DumpHTMLParams]] = queue.Queue(maxsize=threads)
-    workers: list[threading.Thread] = []
 
-    for i in range(threads):
-        t = threading.Thread(name=f"worker-{i}", target=html_worker, args=(tasks_queue, ignore_errors))
-        t.daemon = True
-        t.start()
-        workers.append(t)
+    task_templ = DumpHTMLParams(dump_dir=dump_dir, title_index=-999, title='', doku_url=doku_url, session=session, current_only=current_only)
 
-    task_templ = DumpHTMLParams(dump_dir=dump_dir, title_index=0, title='', doku_url=doku_url, session=session, current_only=current_only)
+    tasks_queue: queue.Queue[DumpHTMLParams] = queue.Queue(maxsize=threads)
 
-    for index, title in enumerate(titles):
-        if sub_thread_error:
-            raise sub_thread_error
+    def task_generator():
+        for index, title in enumerate(titles):
+            task = copy.copy(task_templ)
+            task.title_index = index
+            task.title = title
+            tasks_queue.put(task)
+            print('HTML: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
 
-        task = copy.copy(task_templ)
-        task.title_index, task.title = index, title
-        tasks_queue.put(task)
-        print('HTML: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
+            if exit_event.is_set():
+                print('task generator exit (exit event set)')
+                return
 
-    for _ in range(threads):
-        tasks_queue.put(None)
+        tasks_queue.join()
+        print('All tasks done, terminating workers...')
+        exit_event.set()
 
-    tasks_queue.join()
+    tg_thread = threading.Thread(target=task_generator, name='task-generator')
+    tg_thread.daemon = True
+    tg_thread.start()
 
-    for w in workers:
-        w.join()
-        print('worker %s finished' % w.name)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = set()
+        while not exit_event.is_set():
+            try:
+                task = tasks_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            f = executor.submit(_dump_html_action, task, ignore_errors)
+            f.add_done_callback(lambda f: tasks_queue.task_done())
+            futures.add(f)
 
-    if sub_thread_error:
-        raise sub_thread_error
-def html_worker(tasks_queue: queue.Queue, ignore_errors: bool):
-    while task := tasks_queue.get():
-        try:
-            dump_html_page(task)
-        except Exception as e:
-            if not ignore_errors:
-                global sub_thread_error
-                sub_thread_error = e
-                raise e
-            print('[',task.title_index+1,']Error in sub thread: (', e, ') ignored')
-        finally:
-            tasks_queue.task_done()
-    tasks_queue.task_done()
+            if len(futures) >= threads:
+                _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                for f in _done:
+                    f.result()
+
+        while futures:
+            _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            for f in _done:
+                f.result()
+
+    tg_thread.join()
+
+
+def _dump_html_action(task: DumpHTMLParams, ignore_errors: bool):
+    try:
+        dump_html_page(task)
+    except Exception as e:
+        if not ignore_errors:
+            raise e
+        else:
+            print('[',task.title_index+1,'] Error in sub thread: (', e, ') ignored')
+
 
 def dump_html_page(task: DumpHTMLParams):
     r = task.session.get(task.doku_url, params={'do': runtime_config.export_xhtml_action, 'id': task.title})

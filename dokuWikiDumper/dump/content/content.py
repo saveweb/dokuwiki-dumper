@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import queue
 import time
 import threading
-from typing import Callable, Optional
+from typing import Callable
+import concurrent.futures
 
 from requests import Session
 
@@ -13,8 +14,6 @@ from .revisions import get_revisions, get_source_edit, get_source_export, save_p
 from .titles import load_get_save_titles
 from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
-
-sub_thread_error = None
 
 
 @dataclass
@@ -27,8 +26,7 @@ class DumpPageParams:
     session: Session
     current_only: bool
 
-
-
+exit_event = threading.Event()
 
 def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int = 1,
                  ignore_errors: bool = False, ignore_action_disabled_edit: bool = False, current_only: bool = False):
@@ -46,61 +44,68 @@ def dump_content(*, doku_url: str, dump_dir: str, session: Session, threads: int
         time.sleep(3)
         get_source = get_source_edit
 
-
-    tasks_queue: queue.Queue[Optional[DumpPageParams]] = queue.Queue(maxsize=threads)
-
-    workers: list[threading.Thread] = []
-    # spawn workers
-    for i in range(threads):
-        t = threading.Thread(name=f"worker-{i}", target=dump_worker, args=(tasks_queue, ignore_errors, ignore_action_disabled_edit))
-        t.daemon = True
-        t.start()
-        workers.append(t)
-
     task_templ = DumpPageParams(dump_dir=dump_dir, doku_url=doku_url, session=session, get_source=get_source, current_only=current_only,
                           title_index=-999, title="dokuwikidumper_placehold")
 
-    for index, title in enumerate(titles):
-        if sub_thread_error:
-            raise sub_thread_error
+    tasks_queue: queue.Queue[DumpPageParams] = queue.Queue(maxsize=threads)
 
-        task = copy.copy(task_templ)
-        task.title_index = index
-        task.title = title
-        tasks_queue.put(task)
-        print('Content: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
+    def task_generator():
+        for index, title in enumerate(titles):
+            task = copy.copy(task_templ)
+            task.title_index = index
+            task.title = title
+            tasks_queue.put(task)
+            print('Content: (%d/%d): [[%s]] ...' % (index+1, len(titles), title))
 
-    for _ in range(threads):
-        tasks_queue.put(None)
+            if exit_event.is_set():
+                print('task generator exit (exit event set)')
+                return
 
-    tasks_queue.join()
+        tasks_queue.join()
+        print('All tasks done, terminating workers...')
+        exit_event.set()
 
-    for w in workers:
-        w.join()
-        print('worker %s finished' % w.name)
+    tg_thread = threading.Thread(target=task_generator, name='task-generator')
+    tg_thread.daemon = True
+    tg_thread.start()
 
-    if sub_thread_error:
-        raise sub_thread_error
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = set()
+        while not exit_event.is_set():
+            try:
+                task = tasks_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            f = executor.submit(_dump_action, task, ignore_errors, ignore_action_disabled_edit)
+            f.add_done_callback(lambda f: tasks_queue.task_done())
+            futures.add(f)
+
+            if len(futures) >= threads:
+                _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                for f in _done:
+                    f.result()
+
+        while futures:
+            _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            for f in _done:
+                f.result()
 
 
-def dump_worker(tasks_queue: queue.Queue[Optional[DumpPageParams]], ignore_errors: bool, ignore_action_disabled_edit: bool):
-    global sub_thread_error
-    while task := tasks_queue.get():
-        try:
-            dump_page(task)
-        except Exception as e:
-            if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
-                print('[',task.title_index,'] action disabled: edit. ignored')
-            elif isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
-                print('[',task.title_index,'] action edit: textarea not found. ignored')
-            elif not ignore_errors:
-                sub_thread_error = e
-                raise e
-            else:
-                print('[',task.title_index,'] Error in sub thread: (', e, ') ignored')
-        finally:
-            tasks_queue.task_done()
-    tasks_queue.task_done()
+    tg_thread.join()
+
+
+def _dump_action(task: DumpPageParams, ignore_errors: bool, ignore_action_disabled_edit: bool):
+    try:
+        dump_page(task)
+    except Exception as e:
+        if isinstance(e, ActionEditDisabled) and ignore_action_disabled_edit:
+            print('[',task.title_index,'] action disabled: edit. ignored')
+        elif isinstance(e, ActionEditTextareaNotFound) and ignore_action_disabled_edit:
+            print('[',task.title_index,'] action edit: textarea not found. ignored')
+        elif not ignore_errors:
+            raise e
+        else:
+            print('[',task.title_index,'] Error in sub thread: (', e, ') ignored')
 
 
 def dump_page(task: DumpPageParams):

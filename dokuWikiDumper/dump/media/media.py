@@ -7,6 +7,7 @@ import threading
 import time
 import urllib.parse as urlparse
 from typing import Optional
+import concurrent.futures
 
 from bs4 import BeautifulSoup
 import requests
@@ -15,7 +16,7 @@ from dokuWikiDumper.utils.util import smkdirs, uopen
 from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.config import runtime_config
 
-sub_thread_error = None
+exit_event = threading.Event()
 
 @dataclass
 class DumpMediaParams:
@@ -85,57 +86,62 @@ def dump_media(*, base_url: str, dumpDir: str, session: requests.Session, thread
     # media_repo = urlparse.urljoin(base_url, '_media')
 
     files = getFiles(base_url, dumpDir=dumpDir, session=session)
-
-    tasks_queue: queue.Queue[Optional[DumpMediaParams]] = queue.Queue(maxsize=threads)
-
-    workers: list[threading.Thread] = []
-    # spawn workers
-    for i in range(threads):
-        t = threading.Thread(name=f"worker-{i}", target=dump_media_worker, args=(tasks_queue, ignore_errors))
-        t.daemon = True
-        t.start()
-        workers.append(t)
+    tasks_queue: queue.Queue[DumpMediaParams] = queue.Queue(maxsize=threads)
 
     task_templ = DumpMediaParams(dump_dir=dumpDir, base_url=base_url, session=session, fetch_url=fetch,
                                 title_index=-999, title="dokuwikidumper_placehold")
 
-    for index, title in enumerate(files):
-        if sub_thread_error:
-            raise sub_thread_error
+    def task_generator():
+        for index, title in enumerate(files):
+            task = copy.copy(task_templ)
+            task.title_index = index
+            task.title = title
+            tasks_queue.put(task)
+            print('Media: (%d/%d): [[%s]] ...' % (index+1, len(files), title))
 
-        task = copy.copy(task_templ)
-        task.title_index = index
-        task.title = title
-        tasks_queue.put(task)
-        print('Media: (%d/%d): [[%s]] ...' % (index+1, len(files), title))
+            if exit_event.is_set():
+                print('task generator exit (exit event set)')
+                return
 
-    for _ in range(threads):
-        tasks_queue.put(None)
+        tasks_queue.join()
+        print('All tasks done, terminating workers...')
+        exit_event.set()
 
-    tasks_queue.join()
+    tg_thread = threading.Thread(target=task_generator, name='task-generator')
+    tg_thread.daemon = True
+    tg_thread.start()
 
-    for w in workers:
-        w.join()
-        print('worker %s finished' % w.name)
-
-    if sub_thread_error:
-        raise sub_thread_error
-
-
-def dump_media_worker(tasks_queue: queue.Queue[Optional[DumpMediaParams]], ignore_errors: bool):
-    global sub_thread_error
-    while task := tasks_queue.get():
+    def _dump_media_action(task: DumpMediaParams, ignore_errors: bool):
         try:
             download_media_file(task)
         except Exception as e:
             if not ignore_errors:
-                sub_thread_error = e
                 raise e
             else:
-                print('[',task.title_index,'] Error in sub thread: (', e, ') ignored')
-        finally:
-            tasks_queue.task_done()
-    tasks_queue.task_done()
+                print('[',task.title_index+1,'] Error in sub thread: (', e, ') ignored')
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = set()
+        while not exit_event.is_set():
+            try:
+                task = tasks_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            f = executor.submit(_dump_media_action, task, ignore_errors)
+            f.add_done_callback(lambda f: tasks_queue.task_done())
+            futures.add(f)
+
+            if len(futures) >= threads:
+                _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                for f in _done:
+                    f.result()
+
+        while futures:
+            _done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            for f in _done:
+                f.result()
+
+    tg_thread.join()
 
 
 def download_media_file(task: DumpMediaParams):
