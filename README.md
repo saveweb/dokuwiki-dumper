@@ -113,7 +113,7 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 3 --
 
 > Highly recommend using `--username` and `--password` to login (or using `--cookies`), because some sites may disable anonymous users to access some pages or check the raw wikitext.
 
-`--cookies` accepts a Netscape cookies file, you can use [cookies.txt Extension](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/) to export cookies from Firefox. It also accepts a json cookies file created by [Cookie Quick Manager](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/).
+`--cookies` accepts a Netscape cookies file, you can use [cookies.txt Extension](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/) to export cookies from Firefox. It also accepts a json cookies file created by [Cookie Quick Manager](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/). Bring a cookies file when the wiki requires you to be logged in (e.g. company ACLs or Keycloak/SSO frontends); the dumper loads those cookies before its first request so it can see the authenticated wiki immediately.
 
 ## Dump structure
 
