@@ -206,6 +206,11 @@ def dump():
                                         trim_PHP_warnings=args.trim_php_warnings)
     session_monkey.hijack()
 
+    if args.cookies:
+        load_cookies(session, args.cookies)
+
+    print('Init cookies:', session.cookies.get_dict())
+
     std_url = standardize_url(url_input)
     # use #force to skip 30X redirection detection
     doku_url = get_doku_url(std_url, session=session) if not std_url.endswith('#force') else std_url[:-len('#force')]
@@ -218,12 +223,9 @@ def dump():
             print("A dump of this wiki was uploaded to IA in the last 365 days. Aborting.")
             sys.exit(88)
 
-    print('Init cookies:', session.cookies.get_dict())
     if args.username:
         login_dokuwiki(doku_url=doku_url, session=session,
                        username=args.username, password=args.password)
-    if args.cookies:
-        load_cookies(session, args.cookies)
 
 
     base_url = build_base_url(doku_url)
@@ -309,4 +311,3 @@ def dump():
         else:
             print('dokuWikiUploader: --upload: [red] Failed [/red]!!!')
             raise RuntimeError('dokuWikiUploader: --upload: Failed!!!')
-
