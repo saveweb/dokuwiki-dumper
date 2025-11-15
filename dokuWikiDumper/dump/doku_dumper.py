@@ -208,12 +208,13 @@ def dump():
 
     if args.cookies:
         load_cookies(session, args.cookies)
-
-    print('Init cookies:', session.cookies.get_dict())
+        print("Cookies loaded:", session.cookies.get_dict().keys())
 
     std_url = standardize_url(url_input)
     # use #force to skip 30X redirection detection
     doku_url = get_doku_url(std_url, session=session) if not std_url.endswith('#force') else std_url[:-len('#force')]
+
+    print('Cookies in use:', session.cookies.get_dict().keys())
 
     avoidSites(doku_url, session=session)
 
