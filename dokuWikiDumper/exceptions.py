@@ -1,7 +1,7 @@
 import os
 import traceback
 
-from dokuWikiDumper.__version__ import DUMPER_VERSION
+from dokuWikiDumper.version import get_version
 
 
 class VersionOutdatedError(Exception):
@@ -95,7 +95,7 @@ def show_edge_case_warning(**context):
     "to help me improve the code, Thanks!")
     print("------------------------------------------")
     calledfrom = traceback.extract_stack(limit=2)[0]
-    print("VERSION:", DUMPER_VERSION)
+    print("VERSION:", get_version())
     print("FUNC:", f'{calledfrom.filename}:{calledfrom.lineno} ', "FUNC:", calledfrom.name)
     print("CONTEXT:", context)
     print("------------------------------------------")

@@ -1,6 +1,13 @@
-DUMPER_VERSION = '0.2.3'
+__VERSION__ = 'unknown'
 
-from dokuWikiDumper.exceptions import VersionOutdatedError
+try:
+    from importlib.metadata import version
+    __VERSION__ = version('dokuwikidumper')
+except Exception:
+    pass
+
+def get_version():
+    return __VERSION__
 
 
 def get_latest_version():
@@ -21,17 +28,3 @@ def get_latest_version():
     else:
         print('Warning: Could not get latest version of dokuwikidumper.')
         return None
-
-def dokuWikiDumper_outdated_check():
-    latest_version = get_latest_version()
-    if latest_version is None:
-        return
-    if latest_version != DUMPER_VERSION:
-        print('=' * 47)
-        print(f'Warning: You are using an outdated version of dokuWikiDumper ({DUMPER_VERSION}).')
-        print(f'         The latest version is {latest_version}.')
-        print(f'         You can update dokuWikiDumper with "pip3 install --upgrade dokuWikiDumper".')
-        print('=' * 47, end='\n\n')
-        raise VersionOutdatedError(version=DUMPER_VERSION)
-
-    print(f'You are using the latest version of dokuwikidumper.')

@@ -22,7 +22,8 @@ from dokuWikiDumper.utils.dump_lock import DumpLock
 from dokuWikiDumper.utils.ia_checker import any_recent_ia_item_exists
 from dokuWikiDumper.utils.util import print_with_lock as print
 
-from dokuWikiDumper.__version__ import DUMPER_VERSION, dokuWikiDumper_outdated_check
+from dokuWikiDumper.version import get_version
+from dokuWikiDumper.version_check import dokuWikiDumper_outdated_check
 from dokuWikiDumper.dump.content.content import dump_content
 from dokuWikiDumper.dump.html.html import dump_HTML
 from dokuWikiDumper.dump.info.info import update_info
@@ -36,7 +37,7 @@ from dokuWikiDumper.utils.util import avoidSites, build_base_url, get_doku_url, 
 DEFAULT_THREADS = -1 # magic number, -1 means use 1 thread.
 
 def getArgumentParser():
-    parser = argparse.ArgumentParser(description='dokuWikiDumper Version: '+ DUMPER_VERSION)
+    parser = argparse.ArgumentParser(description='dokuWikiDumper Version: '+ get_version())
     parser.add_argument('url', help='URL of the dokuWiki (provide the doku.php URL)', type=str)
 
     group_download = parser.add_argument_group("Data to download", "What info download from the wiki")
@@ -98,7 +99,7 @@ def getArgumentParser():
                         help="Arguments for uploader.")
     parser.add_argument('--force', action='store_true', help='To dump even if a recent dump exists on IA')
     parser.add_argument('--user-agent', dest="user_agent", type=str,
-                        default='dokuWikiDumper/' + DUMPER_VERSION + ' (https://github.com/saveweb/dokuwiki-dumper)',
+                        default='dokuWikiDumper/' + get_version() + ' (https://github.com/saveweb/dokuwiki-dumper)',
                         help=argparse.SUPPRESS)
 
     return parser
@@ -247,7 +248,7 @@ def dump():
                'std_url': std_url,  # type: str
                'doku_url': doku_url,  # type: str
                'base_url': base_url,  # type: str
-               'dokuWikiDumper_version': DUMPER_VERSION,
+               'dokuWikiDumper_version': get_version(),  # type: str
                }
     update_config(dump_dir=dump_dir, config=_config)
     update_info(dump_dir, doku_url=doku_url, session=session)
