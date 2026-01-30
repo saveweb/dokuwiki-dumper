@@ -54,6 +54,42 @@ def print_with_lock(*args, **kwargs):
     printLock.release()
 
 
+def _is_disallowed_in_robots_txt(robots_text: str, user_agent: str) -> bool:
+    """
+    Check if a user agent is fully disallowed (Disallow: /) in robots.txt.
+    
+    :param robots_text: The content of robots.txt
+    :param user_agent: The user agent to check (e.g., 'ia_archiver', 'dokuwikidumper')
+    :return: True if the user agent has a full site disallow (Disallow: /), False otherwise
+    """
+    # Normalize the text to lowercase for case-insensitive matching
+    text_lower = robots_text.lower()
+    user_agent_lower = user_agent.lower()
+    
+    # Look for the user agent section
+    lines = text_lower.split('\n')
+    in_relevant_section = False
+    
+    for line in lines:
+        line = line.strip()
+        
+        # Check if this is a user-agent line
+        if line.startswith('user-agent:'):
+            agent = line.split(':', 1)[1].strip()
+            # Check if this section applies to our user agent or to all agents (*)
+            in_relevant_section = (agent == user_agent_lower or agent == '*')
+        
+        # If we're in a relevant section, check for disallow rules
+        elif in_relevant_section and line.startswith('disallow:'):
+            disallow_path = line.split(':', 1)[1].strip()
+            # Check if it's exactly "/" (full site disallow)
+            # Not "/something" or "/path/to/resource"
+            if disallow_path == '/':
+                return True
+    
+    return False
+
+
 def avoidSites(url: str, session: requests.Session):
     #check robots.txt
     exit_ = False
@@ -64,7 +100,7 @@ def avoidSites(url: str, session: requests.Session):
             cookies=session.cookies, headers=session.headers, verify=session.verify, proxies=session.proxies
         )
         if r.status_code == 200:
-            if 'user-agent: ia_archiver\ndisallow: /' in r.text.lower() or 'user-agent: dokuwikidumper\ndisallow: /' in r.text.lower():
+            if _is_disallowed_in_robots_txt(r.text, 'ia_archiver') or _is_disallowed_in_robots_txt(r.text, 'dokuwikidumper'):
                 print('This wiki not allow dokuWikiDumper or IA to crawl.')
                 exit_ = True
     except Exception as e:
