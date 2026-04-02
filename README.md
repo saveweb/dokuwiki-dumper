@@ -115,6 +115,8 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 3 --
 
 `--cookies` accepts a Netscape cookies file, you can use [cookies.txt Extension](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/) to export cookies from Firefox. It also accepts a json cookies file created by [Cookie Quick Manager](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/). Bring a cookies file when the wiki requires you to be logged in (e.g. company ACLs or Keycloak/SSO frontends); the dumper loads those cookies before its first request so it can see the authenticated wiki immediately.
 
+> Uploaded dumps default to [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) licensing on Internet Archive. Use `--license-url` in `dokuWikiUploader` to override.
+
 ## Dump structure
 
 <!-- Dump structure -->

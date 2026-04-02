@@ -42,6 +42,9 @@ DEFAULT_COMPRESSION_LEVEL = 5
 NO_COMPRESSION_LEVEL = 0
 
 
+DEFAULT_LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/"
+
+
 @dataclass
 class UploadConfig:
     """Configuration for upload process."""
@@ -52,6 +55,7 @@ class UploadConfig:
     collection: str
     pack_dumpMeta_dir: bool
     level0_no_compress: List[str]
+    license_url: str = DEFAULT_LICENSE_URL
     delete_after_upload: bool = False
 
 
@@ -274,6 +278,7 @@ class IAUploader:
             "last-updated-date": time.strftime("%Y-%m-%d", time.gmtime()),
             "subject": "; ".join(keywords[:5]),  # Initial keywords only
             "upload-state": "uploading",
+            "licenseurl": self.config.license_url,
         }
         
         if wiki_meta.language:
@@ -483,6 +488,7 @@ def create_upload_config(args: argparse.Namespace) -> UploadConfig:
         collection=args.collection,
         pack_dumpMeta_dir=args.pack_dumpMeta,
         level0_no_compress=args.level0_no_compress or [],
+        license_url=args.license_url,
         delete_after_upload=args.delete
     )
 
@@ -539,6 +545,14 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help='Delete the dump dir after uploading. [default: False]'
     )
     
+    parser.add_argument(
+        "--license-url",
+        default=DEFAULT_LICENSE_URL,
+        dest="license_url",
+        help="License URL for the uploaded item on Internet Archive. "
+             "[default: https://creativecommons.org/licenses/by-sa/4.0/]"
+    )
+
     parser.add_argument(
         "dump_dir", 
         help="Path to the wiki dump directory."
