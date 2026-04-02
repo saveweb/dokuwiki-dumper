@@ -10,11 +10,11 @@ requires-python = "<4.0,>=3.9"
 dependencies = [
     "requests<3.0.0,>=2.32.2",
     "beautifulsoup4<5.0.0,>=4.13.4",
-    "lxml<6.0.0,>=5.4.0",
     "internetarchive<6.0.0,>=5.4.0",
     "rich<15.0.0,>=14.0.0",
     "python-slugify<9.0.0,>=8.0.4",
     "typing-extensions<5.0.0,>=4.13.2",
+    "lxml>=6.0.2",
 ]
 readme = "README.md"
 
