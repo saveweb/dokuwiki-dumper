@@ -54,6 +54,23 @@ def print_with_lock(*args, **kwargs):
     printLock.release()
 
 
+def _is_disallow_in_robots_txt(robots_txt: str, user_agent: str) -> bool:
+    robots_txt = robots_txt.lower()
+    user_agent = user_agent.lower()
+
+    lines = robots_txt.splitlines()
+    in_relevant_section = False
+
+    for line in lines:
+        if line.startswith('user-agent:'):
+            current_user_agent = line[len('user-agent:'):].strip()
+            in_relevant_section = (current_user_agent == user_agent)
+        elif in_relevant_section and line.startswith('disallow:'):
+            disallow_path = line[len('disallow:'):].strip()
+            if disallow_path == '/':
+                return True
+    return False
+
 def avoidSites(url: str, session: requests.Session):
     #check robots.txt
     exit_ = False
@@ -64,14 +81,14 @@ def avoidSites(url: str, session: requests.Session):
             cookies=session.cookies, headers=session.headers, verify=session.verify, proxies=session.proxies
         )
         if r.status_code == 200:
-            if 'user-agent: ia_archiver\ndisallow: /' in r.text.lower() or 'user-agent: dokuwikidumper\ndisallow: /' in r.text.lower():
+            if _is_disallow_in_robots_txt(r.text, 'ia_archiver') or _is_disallow_in_robots_txt(r.text, 'dokuwikidumper'):
                 print('This wiki not allow dokuWikiDumper or IA to crawl.')
                 exit_ = True
     except Exception as e:
         print('Error: cannot get robots.txt', e)        
     
     if exit_:
-        sys.exit(0)
+        sys.exit(33)
 
     site = urlparse(url).netloc
     avoidList = ['www.dokuwiki.org']  # TODO: Add more sites
