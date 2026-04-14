@@ -25,6 +25,7 @@ INFO_RAW_TITLE = "raw_title"
 INFO_DOKU_URL = "doku_url"
 INFO_LANG = "language"
 INFO_ICON_URL = "icon_url"
+INFO_LICENSE_URL = "license_url"
 
 def get_info(dumpDir: str) -> dict:
     if os.path.exists(os.path.join(dumpDir, INFO_FILEPATH)):
@@ -33,6 +34,25 @@ def get_info(dumpDir: str) -> dict:
             return _info
 
     return {}
+
+
+def get_license_url(html: Union[bytes, str]) -> Optional[str]:
+    """Extract the license URL from the wiki page footer.
+
+    DokuWiki's default template renders license info as:
+    <div class="license">
+      ... <a href="https://creativecommons.org/licenses/by-sa/4.0/">...</a>
+    </div>
+    """
+    soup = BeautifulSoup(html, runtime_config.html_parser)
+    license_div = soup.find('div', class_='license')
+    if isinstance(license_div, Tag):
+        link = license_div.find('a')
+        if isinstance(link, Tag):
+            href = link.get('href')
+            if isinstance(href, str) and href.startswith('http'):
+                return href
+    return None
 
 
 def update_info_json(dumpDir: str, info: dict):
@@ -155,12 +175,15 @@ def update_info(dumpDir: str, doku_url: str, session: requests.Session):
 
     save_icon(dumpDir=dumpDir, url_or_dataUrl=icon_url, session=session)
 
+    license_url = get_license_url(homepage_html)
+
     info = {
         INFO_WIKI_NAME: wiki_name,
         INFO_RAW_TITLE: raw_title,
         INFO_DOKU_URL: doku_url,
         INFO_LANG: lang,
         INFO_ICON_URL: icon_url,
+        INFO_LICENSE_URL: license_url,
     }
     print('Info:', info)
     update_info_json(dumpDir, info)

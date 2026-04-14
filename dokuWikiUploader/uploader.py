@@ -12,7 +12,7 @@ import requests
 
 from dokuWikiDumper.utils.util import url2prefix
 from dokuWikiDumper.dump.info.info import get_info
-from dokuWikiDumper.dump.info.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG
+from dokuWikiDumper.dump.info.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG, INFO_LICENSE_URL
 from dokuWikiDumper.utils.config import get_config
 
 from .__version__ import UPLOADER_VERSION
@@ -42,9 +42,6 @@ DEFAULT_COMPRESSION_LEVEL = 5
 NO_COMPRESSION_LEVEL = 0
 
 
-DEFAULT_LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/"
-
-
 @dataclass
 class UploadConfig:
     """Configuration for upload process."""
@@ -55,7 +52,7 @@ class UploadConfig:
     collection: str
     pack_dumpMeta_dir: bool
     level0_no_compress: List[str]
-    license_url: str = DEFAULT_LICENSE_URL
+    license_url: Optional[str] = None
     delete_after_upload: bool = False
 
 
@@ -256,6 +253,7 @@ class IAUploader:
     
     def _create_item_metadata(self, wiki_meta: WikiMetadata) -> Dict[str, str]:
         """Create initial item metadata."""
+        info = get_info(self.config.dump_dir)
         config = get_config(self.config.dump_dir)
         
         keywords = ["wiki", "wikiteam", "DokuWiki", "dokuWikiDumper", "wikidump"]
@@ -270,6 +268,9 @@ class IAUploader:
             f"and uploaded with dokuWikiUploader v{UPLOADER_VERSION}."
         )
         
+        # License: CLI flag overrides parsed license from info.json
+        license_url = self.config.license_url or info.get(INFO_LICENSE_URL)
+
         metadata = {
             "mediatype": "web",
             "collection": self.config.collection,
@@ -278,8 +279,10 @@ class IAUploader:
             "last-updated-date": time.strftime("%Y-%m-%d", time.gmtime()),
             "subject": "; ".join(keywords[:5]),  # Initial keywords only
             "upload-state": "uploading",
-            "licenseurl": self.config.license_url,
         }
+
+        if license_url:
+            metadata["licenseurl"] = license_url
         
         if wiki_meta.language:
             metadata["language"] = wiki_meta.language
@@ -547,10 +550,10 @@ def create_argument_parser() -> argparse.ArgumentParser:
     
     parser.add_argument(
         "--license-url",
-        default=DEFAULT_LICENSE_URL,
+        default=None,
         dest="license_url",
         help="License URL for the uploaded item on Internet Archive. "
-             "[default: https://creativecommons.org/licenses/by-sa/4.0/]"
+             "If not set, the license is auto-detected from the wiki's HTML footer."
     )
 
     parser.add_argument(
