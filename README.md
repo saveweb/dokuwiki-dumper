@@ -52,12 +52,13 @@ pip3 install dokuWikiDumper --upgrade
 ## Usage
 
 ```bash
-usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--path PATH] [--no-resume] [--threads THREADS] [--i-love-retro] [--insecure] [--ignore-errors] [--ignore-action-disabled-edit] [--trim-php-warnings]
-                      [--export-xhtml-action {export_html,export_xhtml}] [--delay DELAY] [--retry RETRY] [--hard-retry HARD_RETRY] [--parser PARSER] [--username USERNAME] [--password PASSWORD] [--verbose] [--cookies COOKIES] [--auto] [-u]
+usage: dokuWikiDumper [-h] [--content] [--media] [--html] [--pdf] [--current-only] [--path PATH] [--no-resume] [--threads THREADS] [--i-love-retro] [--insecure]
+                      [--ignore-errors] [--ignore-action-disabled-edit] [--trim-php-warnings] [--export-xhtml-action {export_html,export_xhtml}] [--delay DELAY]
+                      [--retry RETRY] [--hard-retry HARD_RETRY] [--parser PARSER] [--username USERNAME] [--password PASSWORD] [--verbose] [--cookies COOKIES] [--auto] [-u]
                       [-g UPLOADER_ARGS] [--force]
                       url
 
-dokuWikiDumper Version: 0.1.48
+dokuWikiDumper Version: 0.2.5
 
 positional arguments:
   url                   URL of the dokuWiki (provide the doku.php URL)
@@ -72,7 +73,8 @@ options:
   --insecure            Disable SSL certificate verification
   --ignore-errors       !DANGEROUS! ignore errors in the sub threads. This may cause incomplete dumps.
   --ignore-action-disabled-edit
-                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not found error.But you may only get a partial dump. (only works with --content)
+                        Some sites disable edit action for anonymous users and some core pages. This option will ignore this error and textarea not found error.But you may
+                        only get a partial dump. (only works with --content)
   --trim-php-warnings   Trim PHP warnings from requests.Response.text
   --export-xhtml-action {export_html,export_xhtml}
                         HTML export action [default: export_xhtml]
@@ -87,7 +89,7 @@ options:
   --cookies COOKIES     cookies file
   --auto                dump: content+media+html, threads=3, ignore-action-disable-edit. (threads is overridable)
   -u, --upload          Upload wikidump to Internet Archive after successfully dumped (only works with --auto)
-  -g UPLOADER_ARGS, --uploader-arg UPLOADER_ARGS
+  -g, --uploader-arg UPLOADER_ARGS
                         Arguments for uploader.
   --force               To dump even if a recent dump exists on IA
 
@@ -114,8 +116,6 @@ dokuWikiDumper https://example.com/wiki/ --content --media --html --threads 3 --
 > Highly recommend using `--username` and `--password` to login (or using `--cookies`), because some sites may disable anonymous users to access some pages or check the raw wikitext.
 
 `--cookies` accepts a Netscape cookies file, you can use [cookies.txt Extension](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/) to export cookies from Firefox. It also accepts a json cookies file created by [Cookie Quick Manager](https://addons.mozilla.org/en-US/firefox/addon/cookie-quick-manager/). Bring a cookies file when the wiki requires you to be logged in (e.g. company ACLs or Keycloak/SSO frontends); the dumper loads those cookies before its first request so it can see the authenticated wiki immediately.
-
-> The uploader auto-detects the license from the wiki's HTML footer (e.g. CC BY-SA). Use `--license-url` in `dokuWikiUploader` to override if needed.
 
 ## Dump structure
 
