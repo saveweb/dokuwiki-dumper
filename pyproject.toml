@@ -5,7 +5,8 @@ description = "A tool for archiving DokuWiki"
 authors = [
     {name = "yzqzss", email = "yzqzss@yandex.com"},
 ]
-license = {text = "GPL-3.0"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE.md"]
 requires-python = "<4.0,>=3.9"
 dependencies = [
     "requests<3.0.0,>=2.32.2",
@@ -29,12 +30,22 @@ dokuWikiUploader = "dokuWikiUploader:main"
 [dependency-groups]
 dev = [
     "pytest<9.0.0,>=8.3.0",
-    "flake8<8.0.0,>=7.0.0",
+    "ruff>=0.16.2",
 ]
 
 [build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+requires = ["uv_build"]
+build-backend = "uv_build"
 
-[tool.pdm.build]
-includes = ["dokuWikiDumper", "dokuWikiUploader"]
+[tool.uv.build-backend]
+module-name = ["dokuWikiDumper", "dokuWikiUploader"]
+module-root = ""
+
+[tool.ruff]
+line-length = 127
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
