@@ -2,8 +2,8 @@ import json
 import os
 from dataclasses import dataclass
 
-from dokuWikiDumper.utils.util import Singleton, print_with_lock as print
-from dokuWikiDumper.utils.util import uopen
+from dokuWikiDumper.utils.util import Singleton, uopen
+from dokuWikiDumper.utils.util import print_with_lock as print
 
 CONFIG_FILEPATH = 'dumpMeta/config.json'
 

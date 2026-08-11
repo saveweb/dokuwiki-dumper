@@ -4,12 +4,12 @@ import re
 import sys
 import threading
 import time
-from typing import Any, Optional, List, Union, overload
-from urllib.parse import unquote, urlparse, urljoin
+from typing import Any, List, Optional, Union, overload
+from urllib.parse import unquote, urljoin, urlparse
 
+import requests
 from rich import print as rprint
 from slugify import slugify
-import requests
 
 USE_RICH = True
 

@@ -1,19 +1,28 @@
-import copy
-from dataclasses import dataclass
-import queue
-import time
-import threading
-from typing import Callable
 import concurrent.futures
+import copy
+import queue
+import threading
+import time
+from dataclasses import dataclass
+from typing import Callable
 
 from requests import Session
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, DispositionHeaderMissingError
-
-from .revisions import get_revisions, get_source_edit, get_source_export, save_page_changes
-from .titles import load_get_save_titles
-from dokuWikiDumper.utils.util import smkdirs, uopen
+from dokuWikiDumper.exceptions import (
+    ActionEditDisabled,
+    ActionEditTextareaNotFound,
+    DispositionHeaderMissingError,
+)
 from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.util import smkdirs, uopen
+
+from .revisions import (
+    get_revisions,
+    get_source_edit,
+    get_source_export,
+    save_page_changes,
+)
+from .titles import load_get_save_titles
 
 
 @dataclass

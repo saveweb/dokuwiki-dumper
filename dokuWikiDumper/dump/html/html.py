@@ -1,17 +1,17 @@
+import concurrent.futures
 import copy
-from dataclasses import dataclass
 import os
 import queue
 import threading
-import concurrent.futures
+from dataclasses import dataclass
+
 import requests
 
 from dokuWikiDumper.dump.content.revisions import get_revisions, save_page_changes
 from dokuWikiDumper.dump.content.titles import load_get_save_titles
-
-from dokuWikiDumper.utils.util import smkdirs, uopen
-from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.config import runtime_config
+from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.util import smkdirs, uopen
 
 HTML_DIR = 'html/'
 HTML_PAGR_DIR = HTML_DIR + 'pages/'

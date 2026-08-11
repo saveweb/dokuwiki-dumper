@@ -1,18 +1,17 @@
+import base64
 import json
 import os
 import re
-import base64
 from typing import Optional, Union
 from urllib.parse import urljoin
 
+import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-import requests
 
+from dokuWikiDumper.utils.config import runtime_config
 from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.util import uopen
-from dokuWikiDumper.utils.config import runtime_config
-
 
 INFO_FILEPATH = 'dumpMeta/info.json'
 HOMEPAGE_FILEPATH = 'dumpMeta/index.html'

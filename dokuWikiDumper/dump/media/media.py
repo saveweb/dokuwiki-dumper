@@ -1,20 +1,20 @@
+import concurrent.futures
 import copy
-from dataclasses import dataclass
 import os
 import queue
 import re
 import threading
 import time
 import urllib.parse as urlparse
+from dataclasses import dataclass
 from typing import Optional
-import concurrent.futures
 
-from bs4 import BeautifulSoup
 import requests
+from bs4 import BeautifulSoup
 
-from dokuWikiDumper.utils.util import smkdirs, uopen
-from dokuWikiDumper.utils.util import print_with_lock as print
 from dokuWikiDumper.utils.config import runtime_config
+from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.util import smkdirs, uopen
 
 exit_event = threading.Event()
 

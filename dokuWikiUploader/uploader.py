@@ -1,22 +1,27 @@
 import argparse
 import hashlib
-import shutil
-import time
 import os
+import shutil
 import subprocess
+import time
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
-from internetarchive import get_item, Item
 import requests
+from internetarchive import Item, get_item
 
-from dokuWikiDumper.utils.util import url2prefix
-from dokuWikiDumper.dump.info.info import get_info
-from dokuWikiDumper.dump.info.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG, INFO_LICENSE_URL
+from dokuWikiDumper.dump.info.info import (
+    INFO_DOKU_URL,
+    INFO_LANG,
+    INFO_LICENSE_URL,
+    INFO_RAW_TITLE,
+    INFO_WIKI_NAME,
+    get_info,
+)
 from dokuWikiDumper.utils.config import get_config
+from dokuWikiDumper.utils.util import url2prefix
 
 from .__version__ import UPLOADER_VERSION
-
 
 # Constants
 DEFAULT_COLLECTION = 'opensource'

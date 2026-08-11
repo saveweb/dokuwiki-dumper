@@ -1,9 +1,13 @@
 import urllib.parse as urlparse
-from bs4 import BeautifulSoup
+
 import requests
+from bs4 import BeautifulSoup
+
 from dokuWikiDumper.exceptions import ActionIndexDisabled
-from dokuWikiDumper.utils.util import load_titles, print_with_lock as print, uopen
 from dokuWikiDumper.utils.config import runtime_config
+from dokuWikiDumper.utils.util import load_titles, uopen
+from dokuWikiDumper.utils.util import print_with_lock as print
+
 
 def get_titles(url, ns=None, session: requests.Session=None, use_legacy_method=None):
     """Get titles given a doku.php URL and an (optional) namespace

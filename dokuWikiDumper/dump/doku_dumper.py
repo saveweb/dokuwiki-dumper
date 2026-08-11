@@ -18,21 +18,27 @@ import time
 
 import requests
 
-from dokuWikiDumper.utils.dump_lock import DumpLock
-from dokuWikiDumper.utils.ia_checker import any_recent_ia_item_exists
-from dokuWikiDumper.utils.util import print_with_lock as print
-
-from dokuWikiDumper.version import get_version
-from dokuWikiDumper.version_check import dokuWikiDumper_outdated_check
 from dokuWikiDumper.dump.content.content import dump_content
 from dokuWikiDumper.dump.html.html import dump_HTML
 from dokuWikiDumper.dump.info.info import update_info
 from dokuWikiDumper.dump.media.media import dump_media
 from dokuWikiDumper.dump.pdf.pdf import dump_PDF
-from dokuWikiDumper.utils.config import update_config, runtime_config
+from dokuWikiDumper.utils.config import runtime_config, update_config
+from dokuWikiDumper.utils.dump_lock import DumpLock
+from dokuWikiDumper.utils.ia_checker import any_recent_ia_item_exists
 from dokuWikiDumper.utils.patch import SessionMonkeyPatch
 from dokuWikiDumper.utils.session import create_session, load_cookies, login_dokuwiki
-from dokuWikiDumper.utils.util import avoidSites, build_base_url, get_doku_url, smkdirs, standardize_url, url2prefix
+from dokuWikiDumper.utils.util import (
+    avoidSites,
+    build_base_url,
+    get_doku_url,
+    smkdirs,
+    standardize_url,
+    url2prefix,
+)
+from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.version import get_version
+from dokuWikiDumper.version_check import dokuWikiDumper_outdated_check
 
 DEFAULT_THREADS = -1 # magic number, -1 means use 1 thread.
 

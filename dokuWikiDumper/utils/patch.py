@@ -1,4 +1,5 @@
 import requests
+
 from dokuWikiDumper.utils.delay import Delay
 from dokuWikiDumper.utils.util import trim_PHP_warnings
 

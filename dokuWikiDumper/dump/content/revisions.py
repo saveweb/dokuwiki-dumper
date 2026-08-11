@@ -1,21 +1,28 @@
-from datetime import datetime
 import html
+import logging
 import os
 import re
-from ipaddress import ip_address, IPv4Address, IPv6Address
 import time
 import urllib.parse as urlparse
-import logging
-
+from datetime import datetime
+from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import List, Optional, TypedDict
 
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from dokuWikiDumper.exceptions import ActionEditDisabled, ActionEditTextareaNotFound, ActionRevisionsDisabled, DispositionHeaderMissingError, HTTPStatusError, RevisionListNotFound, show_edge_case_warning
-from dokuWikiDumper.utils.util import check_int, print_with_lock as print, smkdirs, uopen
+from dokuWikiDumper.exceptions import (
+    ActionEditDisabled,
+    ActionEditTextareaNotFound,
+    ActionRevisionsDisabled,
+    DispositionHeaderMissingError,
+    HTTPStatusError,
+    RevisionListNotFound,
+    show_edge_case_warning,
+)
 from dokuWikiDumper.utils.config import runtime_config
-
+from dokuWikiDumper.utils.util import check_int, smkdirs, uopen
+from dokuWikiDumper.utils.util import print_with_lock as print
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,6 @@
-import os
 import importlib.util
+import os
+
 
 class AlreadyRunningError(Exception):
     def __init__(self, message: str=""):

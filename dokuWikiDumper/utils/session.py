@@ -1,10 +1,10 @@
 
 import http.cookiejar
-import requests.utils
 import json
 import time
 
 import requests
+import requests.utils
 
 from dokuWikiDumper.utils.util import uopen
 

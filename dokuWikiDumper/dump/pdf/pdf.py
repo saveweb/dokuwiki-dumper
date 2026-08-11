@@ -1,17 +1,17 @@
+import concurrent.futures
 import copy
-from dataclasses import dataclass
 import os
 import queue
 import threading
-import concurrent.futures
+from dataclasses import dataclass
 
 import requests
+
 from dokuWikiDumper.dump.content.revisions import get_revisions
 from dokuWikiDumper.dump.content.titles import load_get_save_titles
-from dokuWikiDumper.utils.util import smkdirs
-from dokuWikiDumper.utils.util import print_with_lock as print
-
 from dokuWikiDumper.exceptions import DispositionHeaderMissingError
+from dokuWikiDumper.utils.util import print_with_lock as print
+from dokuWikiDumper.utils.util import smkdirs
 
 PDF_DIR = 'pdf/'
 PDF_PAGR_DIR = PDF_DIR + 'pages/'

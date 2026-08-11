@@ -1,5 +1,6 @@
 from dokuWikiDumper.utils.util import check_int
 
+
 def test_check_int():
     assert 1 == check_int(1)
     assert check_int("a") is None
