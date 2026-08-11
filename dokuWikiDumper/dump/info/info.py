@@ -45,14 +45,10 @@ def get_license_url(html: Union[bytes, str]) -> Optional[str]:
     </div>
     """
     soup = BeautifulSoup(html, runtime_config.html_parser)
-    license_div = soup.find('div', class_='license')
-    if isinstance(license_div, Tag):
-        link = license_div.find('a')
-        if isinstance(link, Tag):
-            href = link.get('href')
-            if isinstance(href, str) and href.startswith('http'):
-                return href
-    return None
+    link = soup.select_one('div.license a[href]')
+    href = link.get('href') if link else None
+
+    return href if isinstance(href, str) and href.startswith(('http://', 'https://')) else None
 
 
 def update_info_json(dumpDir: str, info: dict):
