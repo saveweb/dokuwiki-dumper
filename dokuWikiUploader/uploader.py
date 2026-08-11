@@ -12,7 +12,7 @@ import requests
 
 from dokuWikiDumper.utils.util import url2prefix
 from dokuWikiDumper.dump.info.info import get_info
-from dokuWikiDumper.dump.info.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG
+from dokuWikiDumper.dump.info.info import INFO_WIKI_NAME, INFO_RAW_TITLE, INFO_DOKU_URL, INFO_LANG, INFO_LICENSE_URL
 from dokuWikiDumper.utils.config import get_config
 
 from .__version__ import UPLOADER_VERSION
@@ -52,6 +52,7 @@ class UploadConfig:
     collection: str
     pack_dumpMeta_dir: bool
     level0_no_compress: List[str]
+    license_url: Optional[str] = None
     delete_after_upload: bool = False
 
 
@@ -252,6 +253,7 @@ class IAUploader:
     
     def _create_item_metadata(self, wiki_meta: WikiMetadata) -> Dict[str, str]:
         """Create initial item metadata."""
+        info = get_info(self.config.dump_dir)
         config = get_config(self.config.dump_dir)
         
         keywords = ["wiki", "wikiteam", "DokuWiki", "dokuWikiDumper", "wikidump"]
@@ -266,6 +268,9 @@ class IAUploader:
             f"and uploaded with dokuWikiUploader v{UPLOADER_VERSION}."
         )
         
+        # License: CLI flag overrides parsed license from info.json
+        license_url = self.config.license_url or info.get(INFO_LICENSE_URL)
+
         metadata = {
             "mediatype": "web",
             "collection": self.config.collection,
@@ -275,6 +280,9 @@ class IAUploader:
             "subject": "; ".join(keywords[:5]),  # Initial keywords only
             "upload-state": "uploading",
         }
+
+        if license_url:
+            metadata["licenseurl"] = license_url
         
         if wiki_meta.language:
             metadata["language"] = wiki_meta.language
@@ -483,6 +491,7 @@ def create_upload_config(args: argparse.Namespace) -> UploadConfig:
         collection=args.collection,
         pack_dumpMeta_dir=args.pack_dumpMeta,
         level0_no_compress=args.level0_no_compress or [],
+        license_url=args.license_url,
         delete_after_upload=args.delete
     )
 
@@ -539,6 +548,14 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help='Delete the dump dir after uploading. [default: False]'
     )
     
+    parser.add_argument(
+        "--license-url",
+        default=None,
+        dest="license_url",
+        help="License URL for the uploaded item on Internet Archive. "
+             "If not set, the license is auto-detected from the wiki's HTML footer."
+    )
+
     parser.add_argument(
         "dump_dir", 
         help="Path to the wiki dump directory."
