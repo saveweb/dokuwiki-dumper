@@ -125,11 +125,13 @@ def checkArgs(args):
         print('Warning: threads > 5 , will bring a lot of pressure to the server.')
         print('Original site may deny your request, even ban our UA.')
         time.sleep(3)
-        input('Press Enter to continue...')
+        if sys.stdin.isatty():
+            input('Press Enter to continue...', flush=True)
     if args.ignore_errors:
         print('Warning: You have chosen to ignore errors in the sub threads. This may cause incomplete dumps.')
         time.sleep(3)
-        input('Press Enter to continue...')
+        if sys.stdin.isatty():
+            input('Press Enter to continue...')
     if args.username and not args.password:
         print('Warning: You have specified a username but no password.')
         return False
@@ -143,7 +145,8 @@ def checkArgs(args):
         print(f"Warning: You have specified a delay and more than one thread ({args.threads}).")
         print("!!! Delay will be applied to each thread separately !!!")
         time.sleep(3)
-        input('Press Enter to continue...')
+        if sys.stdin.isatty():
+            input('Press Enter to continue...')
     if args.retry < 0:
         print('Retry must be >= 0.')
         return False
