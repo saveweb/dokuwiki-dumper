@@ -1,8 +1,10 @@
 import asyncio
+import sys
 import threading
 
 delaying_theads = 0
 delaying_theads_lock = threading.Lock()
+
 
 class Delay:
     done: bool = False
@@ -10,6 +12,9 @@ class Delay:
     delay: float
 
     async def animate(self):
+        if not sys.stdout.isatty():
+            return
+
         while True:
             with self.lock:
                 if self.done:
@@ -21,23 +26,24 @@ class Delay:
 
             await asyncio.sleep(0.35)
 
-
-    def __init__(self, msg=None, delay: float=0.0):
+    def __init__(self, msg=None, delay: float = 0.0):
         """Add a delay if configured for that"""
         if delay <= 0:
             return
         self.ellipses: str = "."
         self.delay = delay
 
-
         with delaying_theads_lock:
             global delaying_theads
             delaying_theads += 1
-            
+
         if msg:
             self.ellipses = ("Delay %.1fs: %s " % (delay, msg)) + self.ellipses
         else:
             self.ellipses = ("Delay %.1fs " % (delay)) + self.ellipses
+
+        if not sys.stdout.isatty():
+            print(self.ellipses, flush=True) # otherwise the delay will be silent
 
         asyncio.run(self.async_tasks())
 
@@ -54,5 +60,5 @@ class Delay:
             self.done = True
             global delaying_theads
             delaying_theads -= 1
-            if delaying_theads == 0: # If this is the last thread, clear the line
+            if delaying_theads == 0 and sys.stdout.isatty():  # If this is the last thread, clear the line
                 print("\r" + " " * len(self.ellipses) + "\r", end="")
